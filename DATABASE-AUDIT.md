@@ -108,3 +108,18 @@ A new migration, `supabase/migrations/202611100002_atomic_counters_and_safe_link
 The initial dependency audit reported 9 findings (3 moderate, 4 high, 2 critical). Both dependency trees have now been updated using non-forced, semver-compatible npm audit fixes. A subsequent `npm audit --audit-level=moderate` passed with **zero known vulnerabilities** in both `kiungo-api` and `linkhub`.
 
 The updated lockfiles now resolve patched releases including `body-parser` 1.20.9 / 2.4.0, `proxy-addr` 2.0.8, `qs` 6.17.1, Next.js 16.4.6, and Sharp 0.35.5. The API tests and frontend production build both passed in CI using the updated dependency trees. No `--force` upgrades were used.
+
+
+## Live rollout update (2026-11-10)
+
+The following changes have since been applied to the connected Linkhub Supabase project (project ref `tjazbkkisjxcdyjmhzat`):
+
+- Migration `atomic_counters_and_safe_link_updates` was applied and verified. It adds service-role-only atomic counter and link-reconciliation RPCs.
+- Migration `repair_analytics_event_tracking` was applied and verified. It adds BIGINT record-reference columns while preserving UUID auth ownership fields, repairs the existing analytics triggers, adds foreign keys/indexes, removes public analytics INSERT policies, and restricts analytics SELECT policies to authenticated owners.
+- A rollback-only database test inserted one temporary profile view and one temporary link click, verified both aggregate counters became 1, and rolled the test transaction back.
+- The Express tracking service now records page-view and link-click events; database triggers update the aggregate counters in the same transaction as each event insert.
+- A Contabo deployment runbook, systemd service unit, and Nginx example have been added under `DEPLOY-CONTABO.md` and `deploy/contabo/`.
+
+The live analytics tables had zero rows before the migration. No existing analytics events were converted or deleted. A separate database backup was not created or verified through the available Supabase connection.
+
+The latest CI run for the earlier foundation commit passed. CI must be rechecked for the new analytics and deployment commits before production rollout. The VPS itself has not been accessed or deployed; DNS, exact domain, server OS, and SSH deployment remain to be confirmed.

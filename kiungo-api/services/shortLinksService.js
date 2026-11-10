@@ -3,7 +3,7 @@ const { randomBytes } = require('node:crypto');
 const { supabase } = require('../db');
 const { sanitizeShortLinkInput } = require('../utils/shortLinks');
 
-const FIELDS = 'id, owner, code, title, destination_url, ios_url, android_url, fallback_url, ios_store_url, android_store_url, status, expires_at, clicks, created_at, updated_at';
+const FIELDS = 'id, owner, code, title, destination_url, mobile_url, desktop_url, fallback_url, status, expires_at, clicks, created_at, updated_at';
 
 function httpError(status, message) {
   const error = new Error(message);
@@ -17,11 +17,9 @@ function present(row) {
     code: row.code,
     title: row.title,
     destinationUrl: row.destination_url,
-    iosUrl: row.ios_url,
-    androidUrl: row.android_url,
+    mobileUrl: row.mobile_url || null,
+    desktopUrl: row.desktop_url || null,
     fallbackUrl: row.fallback_url,
-    iosStoreUrl: row.ios_store_url || null,
-    androidStoreUrl: row.android_store_url || null,
     status: row.status,
     expiresAt: row.expires_at,
     clicks: Number(row.clicks || 0),
@@ -169,7 +167,7 @@ async function getAnalyticsOverview(ownerId) {
 async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   const { data, error } = await supabase
     .from('short_links')
-    .select('id, destination_url, ios_url, android_url, fallback_url, ios_store_url, android_store_url, status, expires_at')
+    .select('id, destination_url, mobile_url, desktop_url, fallback_url, status, expires_at')
     .eq('code', String(code || '').toLowerCase())
     .maybeSingle();
 
@@ -178,20 +176,17 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null;
 
   const agent = String(userAgent).slice(0, 500);
-  const isIOS = /iPhone|iPad|iPod/i.test(agent);
-  const isAndroid = /Android/i.test(agent);
-  const deepLink = isIOS && data.ios_url
-    ? data.ios_url
-    : isAndroid && data.android_url
-      ? data.android_url
-      : null;
-  const destination = data.fallback_url || data.destination_url;
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(agent);
+  const isKnownAgent = Boolean(agent.trim());
+  const destination = isKnownAgent
+    ? (isMobile ? data.mobile_url : data.desktop_url) || data.destination_url
+    : data.fallback_url || data.destination_url;
 
   let safeReferrer = null;
   if (referrer) {
     try { safeReferrer = new URL(String(referrer)).origin.slice(0, 200); } catch { safeReferrer = null; }
   }
-  const device = isIOS ? 'ios' : isAndroid ? 'android' : /Mobile/i.test(agent) ? 'mobile' : 'desktop';
+  const device = isMobile ? 'mobile' : isKnownAgent ? 'desktop' : 'unknown';
 
   // Analytics must never hold up a redirect. The database trigger increments
   // the aggregate click counter atomically when this event insert succeeds.
@@ -202,9 +197,7 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
     console.error('[Short link analytics]', eventError.message || eventError);
   }
 
-  return deepLink
-    ? { deepLink, fallback: destination, storeFallback: isIOS ? data.ios_store_url || null : isAndroid ? data.android_store_url || null : null, universalLink: /^https:\/\//i.test(deepLink) }
-    : { destination };
+  return { destination };
 }
 
 module.exports = {

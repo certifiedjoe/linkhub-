@@ -27,11 +27,9 @@ export type ShortLink = {
   code: string;
   title: string;
   destinationUrl: string;
-  iosUrl: string | null;
-  androidUrl: string | null;
+  mobileUrl: string | null;
+  desktopUrl: string | null;
   fallbackUrl: string | null;
-  iosStoreUrl: string | null;
-  androidStoreUrl: string | null;
   status: 'active' | 'paused';
   expiresAt: string | null;
   clicks: number;
@@ -43,8 +41,8 @@ export type ShortLinkDraft = {
   code?: string;
   title?: string;
   destinationUrl: string;
-  iosUrl?: string;
-  androidUrl?: string;
+  mobileUrl?: string;
+  desktopUrl?: string;
   fallbackUrl?: string;
   status?: 'active' | 'paused';
   expiresAt?: string | null;

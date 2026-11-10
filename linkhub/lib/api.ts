@@ -37,8 +37,17 @@ export type ProfileDraft = {
 
 function base(): string {
   const injected = typeof window === 'undefined' ? '' : ((window as unknown as Record<string, string>).__KIUNGO_API__ || '');
-  if (!injected || injected.slice(0, 2) === '__') return 'http://localhost:8000';
-  const trimmed = injected.replace(/\/$/, '');
+  const configured = process.env.NEXT_PUBLIC_KIUNGO_API_URL || injected;
+  const value = configured && configured.slice(0, 2) !== '__' ? configured : '';
+
+  if (!value) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('The API URL is not configured. Set NEXT_PUBLIC_KIUNGO_API_URL to your deployed Kiungo API origin.');
+    }
+    return 'http://localhost:8000';
+  }
+
+  const trimmed = value.replace(/\/$/, '');
   if (/^https?:\/\//.test(trimmed)) return trimmed;
   const origin = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '');
   return `${origin.replace(/\/$/, '')}/${trimmed.replace(/^\//, '')}`;

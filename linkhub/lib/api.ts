@@ -9,6 +9,32 @@ export type LinkItem = {
   clicks?: number;
 };
 
+export type ShortLink = {
+  id: string;
+  code: string;
+  title: string;
+  destinationUrl: string;
+  iosUrl: string | null;
+  androidUrl: string | null;
+  fallbackUrl: string | null;
+  status: 'active' | 'paused';
+  expiresAt: string | null;
+  clicks: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ShortLinkDraft = {
+  code?: string;
+  title?: string;
+  destinationUrl: string;
+  iosUrl?: string;
+  androidUrl?: string;
+  fallbackUrl?: string;
+  status?: 'active' | 'paused';
+  expiresAt?: string | null;
+};
+
 export type Profile = {
   id: number;
   username: string;
@@ -115,6 +141,11 @@ export const api = {
   remove: (username: string) => request<{ deleted: string }>(`/api/profiles/${encodeURIComponent(username)}`, { method: 'DELETE' }),
   countView: (username: string) => request<{ views: number }>(`/api/profiles/${encodeURIComponent(username)}/view`, { method: 'POST' }),
   countClick: (id: number | string) => request<{ ok: boolean }>(`/api/links/${id}/click`, { method: 'POST' }),
+  shortLinks: () => request<ShortLink[]>('/api/short-links'),
+  createShortLink: (draft: ShortLinkDraft) => request<ShortLink>('/api/short-links', { method: 'POST', body: JSON.stringify(draft) }),
+  updateShortLink: (id: string, draft: Partial<ShortLinkDraft>) => request<ShortLink>(`/api/short-links/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(draft) }),
+  deleteShortLink: (id: string) => request<{ deleted: string }>(`/api/short-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  shortLinkUrl: (code: string) => `${base()}/api/r/${encodeURIComponent(code)}`,
 };
 
 /** Resize an uploaded image to a square 512px data URL so profiles stay light. */

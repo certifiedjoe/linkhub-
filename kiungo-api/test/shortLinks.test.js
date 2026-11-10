@@ -65,3 +65,18 @@ test('expiry values must be valid timestamps', () => {
     { status: 400 }
   );
 });
+
+test('store fallbacks must be valid HTTP or HTTPS URLs', () => {
+  const input = sanitizeShortLinkInput({
+    destinationUrl: 'https://example.com',
+    iosStoreUrl: 'https://apps.apple.com/app/id123',
+    androidStoreUrl: 'https://play.google.com/store/apps/details?id=com.example.app',
+  });
+  assert.equal(input.ios_store_url, 'https://apps.apple.com/app/id123');
+  assert.equal(input.android_store_url, 'https://play.google.com/store/apps/details?id=com.example.app');
+  assert.throws(() => sanitizeShortLinkInput({ destinationUrl: 'https://example.com', iosStoreUrl: 'javascript:alert(1)' }), { status: 400 });
+});
+
+test('partial smart-link updates can clear a store fallback', () => {
+  assert.deepEqual(sanitizeShortLinkInput({ iosStoreUrl: '' }, { partial: true }), { ios_store_url: null });
+});

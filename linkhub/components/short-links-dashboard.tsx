@@ -16,6 +16,9 @@ export function ShortLinksDashboard() {
   const [advanced, setAdvanced] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDestination, setEditDestination] = useState('');
+  const [editMobileUrl, setEditMobileUrl] = useState('');
+  const [editDesktopUrl, setEditDesktopUrl] = useState('');
+  const [editFallbackUrl, setEditFallbackUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -78,9 +81,12 @@ export function ShortLinksDashboard() {
   async function saveDestination(item: ShortLink) {
     setError('');
     try {
-      await api.updateShortLink(item.id, { destinationUrl: editDestination });
+      await api.updateShortLink(item.id, { destinationUrl: editDestination, mobileUrl: editMobileUrl, desktopUrl: editDesktopUrl, fallbackUrl: editFallbackUrl });
       setEditingId(null);
       setEditDestination('');
+      setEditMobileUrl('');
+      setEditDesktopUrl('');
+      setEditFallbackUrl('');
       await refresh();
       setNotice('Destination updated.');
     } catch (err) {
@@ -187,7 +193,13 @@ export function ShortLinksDashboard() {
                   </div>
                   <p className="mt-1 truncate text-sm text-muted">{item.title || item.destinationUrl}</p>
                   {editingId === item.id ? (
-                    <div className="mt-2 flex gap-2"><input type="url" value={editDestination} onChange={e => setEditDestination(e.target.value)} className="min-w-0 flex-1 rounded-lg border bg-surface px-2 py-2 text-xs" aria-label="New destination URL" /><button onClick={() => void saveDestination(item)} className="btn-quiet px-2 py-1 text-xs" aria-label="Save destination"><Check className="h-3.5 w-3.5" /></button><button onClick={() => setEditingId(null)} className="btn-quiet px-2 py-1 text-xs" aria-label="Cancel edit"><X className="h-3.5 w-3.5" /></button></div>
+                    <div className="mt-3 grid gap-2">
+                      <label className="grid gap-1 text-[11px] text-muted">Main website destination<input type="url" required value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full rounded-lg border bg-surface px-2 py-2 text-xs text-foreground" /></label>
+                      <label className="grid gap-1 text-[11px] text-muted">Mobile destination<input type="url" value={editMobileUrl} onChange={e => setEditMobileUrl(e.target.value)} placeholder="Optional" className="w-full rounded-lg border bg-surface px-2 py-2 text-xs text-foreground" /></label>
+                      <label className="grid gap-1 text-[11px] text-muted">Desktop destination<input type="url" value={editDesktopUrl} onChange={e => setEditDesktopUrl(e.target.value)} placeholder="Optional" className="w-full rounded-lg border bg-surface px-2 py-2 text-xs text-foreground" /></label>
+                      <label className="grid gap-1 text-[11px] text-muted">Unknown-device fallback<input type="url" value={editFallbackUrl} onChange={e => setEditFallbackUrl(e.target.value)} placeholder="Optional" className="w-full rounded-lg border bg-surface px-2 py-2 text-xs text-foreground" /></label>
+                      <div className="flex gap-2"><button onClick={() => void saveDestination(item)} disabled={!editDestination.trim()} className="btn-quiet px-3 py-2 text-xs" aria-label="Save destinations"><Check className="h-3.5 w-3.5" /> Save routing</button><button onClick={() => setEditingId(null)} className="btn-quiet px-3 py-2 text-xs" aria-label="Cancel edit"><X className="h-3.5 w-3.5" /> Cancel</button></div>
+                    </div>
                   ) : <p className="mt-1 truncate text-xs text-muted">{item.destinationUrl}</p>}
                   {item.expiresAt ? <p className="mt-1 text-[11px] text-muted">Expires {new Date(item.expiresAt).toLocaleString()}</p> : null}
                   <p className="mt-2 text-xs text-muted"><span className="font-semibold tabular-nums">{item.clicks.toLocaleString()}</span> clicks</p>
@@ -196,7 +208,7 @@ export function ShortLinksDashboard() {
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
                 <button onClick={() => void copy(item)} className="btn-quiet px-3 py-2 text-xs"><Copy className="h-3.5 w-3.5" /> Copy</button>
                 <a href={api.shortLinkUrl(item.code)} target="_blank" rel="noopener noreferrer" className="btn-quiet px-3 py-2 text-xs"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
-                <button onClick={() => { setEditingId(item.id); setEditDestination(item.destinationUrl); }} className="btn-quiet px-3 py-2 text-xs"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                <button onClick={() => { setEditingId(item.id); setEditDestination(item.destinationUrl); setEditMobileUrl(item.mobileUrl || ''); setEditDesktopUrl(item.desktopUrl || ''); setEditFallbackUrl(item.fallbackUrl || ''); }} className="btn-quiet px-3 py-2 text-xs"><Pencil className="h-3.5 w-3.5" /> Edit</button>
                 <button onClick={() => void toggleStatus(item)} className="btn-quiet px-3 py-2 text-xs">{item.status === 'active' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}{item.status === 'active' ? 'Pause' : 'Activate'}</button>
                 <button onClick={() => void remove(item)} className="btn-quiet ml-auto px-3 py-2 text-xs text-red-600"><Trash2 className="h-3.5 w-3.5" /> Delete</button>
               </div>

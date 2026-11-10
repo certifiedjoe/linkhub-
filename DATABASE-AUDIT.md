@@ -95,6 +95,6 @@ A new migration, `supabase/migrations/202611100002_atomic_counters_and_safe_link
 - Migration `202611100001_repair_analytics_ids_and_counters.sql` remains a separate, unapproved draft. Do not run it. Analytics event columns and their intended UUID-versus-BIGINT meaning still need a data-model decision.
 - The current Express tracking endpoints update aggregate counters only. They do not yet create `page_views` or `link_clicks` event rows. Event-level analytics, attribution, and reporting therefore remain incomplete.
 - The profile record update and link reconciliation are separate API/database transactions. Link reconciliation itself is atomic, but the entire profile-plus-links edit is not one transaction.
-- The new tests have been committed but have not yet been run in a checked-out environment. No successful build, typecheck, integration test, or live Supabase test is claimed.
+- The backend validation test suite has now passed in GitHub Actions on Node.js 22 (`npm ci` and `npm test`, run 1: success). This is a focused backend unit-test pass, not a frontend build, full integration test, or live Supabase verification.
 - Full Next.js routing/deployment architecture, tracked dependency cleanup, security/RLS hardening, and end-to-end performance profiling remain to be completed.
 - No production database changes, deployment, or merge to `main` have been made.

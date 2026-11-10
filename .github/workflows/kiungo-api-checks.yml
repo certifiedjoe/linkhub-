@@ -44,8 +44,6 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: linkhub/package-lock.json
-      - name: Apply compatible dependency security fixes
-        run: npm audit fix --package-lock-only --ignore-scripts
       - run: npm ci
       - name: Verify dependency audit
         run: npm audit --audit-level=moderate

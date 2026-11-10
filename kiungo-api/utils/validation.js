@@ -8,10 +8,7 @@ const RESERVED = new Set([
 ]);
 
 function normalizeUsername(u) {
-  return String(u || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_.-]/g, '');
+  return String(u || '').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
 }
 
 function validUsername(u) {
@@ -21,15 +18,13 @@ function validUsername(u) {
 function safeUrl(raw) {
   let u = String(raw || '').trim();
   if (!u) return null;
-
   if (!/^https?:\/\//i.test(u)) {
     if (/^mailto:|^tel:/i.test(u)) return u;
     u = 'https://' + u;
   }
-
   try {
     const parsed = new URL(u);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    if (!['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)) return null;
     return parsed.toString();
   } catch {
     return null;
@@ -50,21 +45,31 @@ function sanitizeProfileInput(body = {}) {
 }
 
 function sanitizeLinks(links = []) {
-  return links
-    .map((link, index) => {
-      const url = safeUrl(link.url);
-      const label = String(link.label || '').trim().slice(0, 60);
-      if (!url || !label) return null;
+  const seenIds = new Set();
+  return links.map((link, index) => {
+    const url = safeUrl(link.url);
+    const label = String(link.label || '').trim().slice(0, 60);
+    if (!url || !label) return null;
 
-      return {
-        label,
-        url,
-        icon: String(link.icon || 'link').slice(0, 24),
-        position: Number.isFinite(link.position) ? link.position : index,
-        clicks: Number(link.clicks) || 0,
-      };
-    })
-    .filter(Boolean);
+    // IDs are preserved as decimal strings to avoid JavaScript bigint precision loss.
+    const id = link.id == null || link.id === '' ? null : String(link.id);
+    if (id !== null) {
+      if (!/^\\d+$/.test(id) || seenIds.has(id)) {
+        const err = new Error('Invalid or duplicate link id.');
+        err.status = 400;
+        throw err;
+      }
+      seenIds.add(id);
+    }
+
+    return {
+      id,
+      label,
+      url,
+      icon: String(link.icon || 'link').slice(0, 24),
+      position: Number.isFinite(link.position) ? link.position : index,
+    };
+  }).filter(Boolean);
 }
 
 module.exports = {

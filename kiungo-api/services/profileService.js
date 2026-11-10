@@ -214,68 +214,41 @@ async function incrementView(username) {
     throw err;
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ views: profile.views + 1 })
-    .eq('id', profile.id)
-    .select('views')
-    .single();
+  const { data, error } = await supabase.rpc('linkhub_increment_profile_views', {
+    p_profile_id: String(profile.id),
+  });
 
   if (error) throw error;
-  return { views: data.views };
+  return { views: data };
 }
 
 async function incrementClick(linkId) {
-  const id = Number(linkId);
-  if (!Number.isFinite(id)) {
+  const id = String(linkId || '');
+  if (!/^\\d+$/.test(id)) {
     const err = new Error('Invalid link id');
     err.status = 400;
     throw err;
   }
 
-  const { data: link, error: fetchError } = await supabase
-    .from('links')
-    .select('clicks')
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('linkhub_increment_link_clicks', {
+    p_link_id: id,
+  });
 
-  if (fetchError) throw fetchError;
-  if (!link) {
-    const err = new Error('Link not found');
-    err.status = 404;
-    throw err;
+  if (error && error.code === 'P0002') {
+    const notFound = new Error('Link not found');
+    notFound.status = 404;
+    throw notFound;
   }
-
-  const { error } = await supabase
-    .from('links')
-    .update({ clicks: (link.clicks || 0) + 1 })
-    .eq('id', id);
-
   if (error) throw error;
-  return { ok: true };
+  return { ok: true, clicks: data };
 }
 
 async function writeLinks(profileId, rawLinks) {
-  const { error: deleteError } = await supabase
-    .from('links')
-    .delete()
-    .eq('profile_id', profileId);
-
-  if (deleteError) throw deleteError;
-
   const links = sanitizeLinks(rawLinks);
-  if (links.length === 0) return;
-
-  const rows = links.map((link) => ({
-    profile_id: profileId,
-    label: link.label,
-    url: link.url,
-    icon: link.icon,
-    position: link.position,
-    clicks: link.clicks,
-  }));
-
-  const { error } = await supabase.from('links').insert(rows);
+  const { error } = await supabase.rpc('linkhub_reconcile_links', {
+    p_profile_id: String(profileId),
+    p_links: links,
+  });
   if (error) throw error;
 }
 

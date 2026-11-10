@@ -399,9 +399,9 @@ function Dashboard({ go }: { go: (to: string) => void }) {
   }, []);
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-10">
+    <div className="dashboard-shell mx-auto max-w-5xl px-4 py-7 sm:px-5 sm:py-10">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-xl font-semibold">My pages</h1>
+        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-accent">Your workspace</p><h1 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">My pages</h1><p className="mt-1 text-sm text-muted">Manage your pages and keep track of how they perform.</p></div>
         <button onClick={() => go('/build')} className="btn-primary ml-auto" data-testid="button-new-page">
           <Plus className="h-4 w-4" /> New page
         </button>
@@ -429,7 +429,7 @@ function Dashboard({ go }: { go: (to: string) => void }) {
       ) : (
         <ul className="mt-8 space-y-5">
           {pages.map((p) => (
-            <li key={p.id} className="card p-5" data-testid={`card-my-page-${p.username}`}>
+            <li key={p.id} className="dashboard-card card p-4 sm:p-5" data-testid={`card-my-page-${p.username}`}>
               <div className="flex flex-wrap items-center gap-4">
                 <span className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-line/50">
                   {p.avatar ? (
@@ -441,7 +441,7 @@ function Dashboard({ go }: { go: (to: string) => void }) {
                   <p className="truncate font-medium">{p.displayName}</p>
                   <p className="truncate font-mono text-xs text-muted">{prettyUrl(p.username)}</p>
                 </div>
-                <div className="ml-auto flex items-center gap-4 text-sm text-muted">
+                <div className="ml-auto flex items-center gap-3 text-sm text-muted sm:gap-4">
                   <span className="inline-flex items-center gap-1.5 tabular-nums">
                     <Eye className="h-4 w-4" /> {p.views}
                   </span>

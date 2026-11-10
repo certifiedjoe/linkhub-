@@ -4,23 +4,23 @@
 
 @layer base {
   :root {
-    --surface: 38 40% 97%;
+    --surface: 36 33% 96%;
     --raised: 0 0% 100%;
-    --ink: 24 14% 12%;
-    --muted: 24 8% 44%;
-    --line: 28 16% 88%;
-    --accent: 14 84% 52%;
+    --ink: 222 28% 13%;
+    --muted: 220 10% 43%;
+    --line: 220 16% 88%;
+    --accent: 17 88% 52%;
     --accent-ink: 0 0% 100%;
-    --shadow: 24 20% 10%;
+    --shadow: 222 35% 12%;
   }
 
   .dark {
-    --surface: 24 12% 8%;
-    --raised: 24 10% 12%;
-    --ink: 38 34% 95%;
-    --muted: 30 8% 62%;
-    --line: 28 8% 22%;
-    --accent: 16 88% 58%;
+    --surface: 225 22% 8%;
+    --raised: 224 19% 12%;
+    --ink: 36 25% 95%;
+    --muted: 220 10% 66%;
+    --line: 222 14% 23%;
+    --accent: 17 90% 60%;
     --accent-ink: 24 30% 8%;
     --shadow: 0 0% 0%;
   }
@@ -35,6 +35,7 @@
 
   body {
     background-color: hsl(var(--surface));
+    background-image: radial-gradient(ellipse at 12% 0%, hsl(var(--accent) / 0.075), transparent 34%), radial-gradient(ellipse at 92% 12%, hsl(205 75% 55% / 0.045), transparent 30%);
     color: hsl(var(--ink));
     font-family: 'Satoshi', Inter, system-ui, sans-serif;
     font-size: 16px;
@@ -85,7 +86,21 @@
 
   .card {
     @apply rounded-2xl border bg-raised shadow-soft;
+    box-shadow: 0 1px 2px hsl(var(--shadow) / 0.035), 0 14px 40px -28px hsl(var(--shadow) / 0.22);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
+  .card:hover {
+    border-color: hsl(var(--accent) / 0.24);
+  }
+  .btn-primary {
+    box-shadow: 0 8px 20px -10px hsl(var(--accent) / 0.65);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 12px 26px -10px hsl(var(--accent) / 0.72);
+  }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--muted) / 0.28); border: 3px solid hsl(var(--surface)); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted) / 0.48); }
 }
 
 /* ---- Public profile themes ---- */

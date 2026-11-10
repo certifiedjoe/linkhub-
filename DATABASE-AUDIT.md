@@ -85,14 +85,16 @@ The following application changes are now present on `rebuild/architecture-found
 - Link ID validation preserves decimal IDs as strings to avoid JavaScript number precision loss and rejects malformed or duplicate IDs.
 - Dashboard and showcase hydration now fetches links for all returned profiles in one query instead of issuing one links query per profile.
 - Browser Supabase startup diagnostics were removed.
-- A Node built-in test suite was added for link ID preservation, duplicate/malformed ID rejection, client click-count tampering, and URL validation.
+- Link input validation now rejects malformed link objects, partially completed rows, non-canonical/duplicate/zero/out-of-range BIGINT IDs, and invalid positions; it preserves BIGINT values without JavaScript number rounding.
+- Profile update requests now use the strict rate limiter in addition to requiring an authenticated owner.
+- The Node built-in test suite covers BIGINT edge cases, empty builder rows, malformed rows, positions, client click-count tampering, and unsafe URL protocols.
 
 A new migration, `supabase/migrations/202611100002_atomic_counters_and_safe_link_updates.sql`, defines the required RPC functions and grants execution only to `service_role`. It has been committed but has NOT been executed against Supabase.
 
 ## Remaining blockers and unverified work
 
 - These changes depend on applying migration `202611100002` before deploying the updated Express API. Until then, its RPC calls will fail because the functions will not exist.
-- Migration `202611100001_repair_analytics_ids_and_counters.sql` remains a separate, unapproved draft. Do not run it. Analytics event columns and their intended UUID-versus-BIGINT meaning still need a data-model decision.
+- The initial UUID-to-BIGINT analytics conversion draft was withdrawn from this branch because the live policy dependencies and intended UUID semantics are not yet confirmed. No analytics type conversion is proposed until the data model is verified. Analytics event columns still need a deliberate UUID-versus-BIGINT decision.
 - The current Express tracking endpoints update aggregate counters only. They do not yet create `page_views` or `link_clicks` event rows. Event-level analytics, attribution, and reporting therefore remain incomplete.
 - The profile record update and link reconciliation are separate API/database transactions. Link reconciliation itself is atomic, but the entire profile-plus-links edit is not one transaction.
 - GitHub Actions now passes both backend tests (`npm ci`, `npm test`) and the Next.js production build (`npm ci`, `npm run build`) on Node.js 22. The build exposed and led to fixes for the Next.js 16 webpack/Turbopack CLI mismatch and the TypeScript 7 removal of `baseUrl`.

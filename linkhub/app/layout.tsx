@@ -20,10 +20,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link
           href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=clash-display@500,600&display=swap"
           rel="stylesheet"
-          media="print"
-          onLoad={(event) => {
-            event.currentTarget.media = 'all';
-          }}
         />
         <script
           dangerouslySetInnerHTML={{

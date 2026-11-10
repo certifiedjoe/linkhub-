@@ -25,7 +25,7 @@ function validUsername(u) {
 function safeUrl(raw) {
   let u = String(raw || '').trim();
   if (!u) return null;
-  if (!/^https?:\\/\\//i.test(u)) {
+  if (!/^https?:\/\//i.test(u)) {
     if (/^mailto:|^tel:/i.test(u)) return u;
     u = 'https://' + u;
   }
@@ -70,7 +70,7 @@ function sanitizeLinks(links = []) {
     let id = null;
     if (link.id != null && link.id !== '') {
       const rawId = String(link.id);
-      if (!/^\\d+$/.test(rawId)) throw badRequest('Invalid link id.');
+      if (! /^\d+$/.test(rawId)) throw badRequest('Invalid link id.');
       const numericId = BigInt(rawId);
       if (numericId <= 0n || numericId > MAX_BIGINT) throw badRequest('Invalid link id.');
       id = numericId.toString();

@@ -95,6 +95,75 @@ async function deleteShortLink(ownerId, id) {
   return { deleted: data.id };
 }
 
+async function getAnalyticsOverview(ownerId) {
+  const { data: links, error: linksError } = await supabase
+    .from('short_links')
+    .select('id, code, title, clicks, status, created_at')
+    .eq('owner', ownerId)
+    .order('clicks', { ascending: false });
+  if (linksError) throw linksError;
+
+  const ownedLinks = links || [];
+  const linkIds = ownedLinks.map((link) => link.id);
+  const totalClicks = ownedLinks.reduce((sum, link) => sum + Number(link.clicks || 0), 0);
+
+  let events = [];
+  if (linkIds.length) {
+    const { data, error } = await supabase
+      .from('short_link_clicks')
+      .select('short_link_id, referrer, device, created_at')
+      .in('short_link_id', linkIds)
+      .order('created_at', { ascending: false })
+      .limit(2000);
+    if (error) throw error;
+    events = data || [];
+  }
+
+  const linkById = new Map(ownedLinks.map((link) => [link.id, link]));
+  const devices = new Map();
+  const referrers = new Map();
+  const recentClicks = events.slice(0, 12).map((event) => {
+    const link = linkById.get(event.short_link_id);
+    return {
+      code: link?.code || '',
+      title: link?.title || '',
+      device: event.device || 'unknown',
+      referrer: event.referrer || 'Direct / unknown',
+      createdAt: event.created_at,
+    };
+  });
+
+  for (const event of events) {
+    const device = event.device || 'unknown';
+    devices.set(device, (devices.get(device) || 0) + 1);
+    let source = 'Direct / unknown';
+    if (event.referrer) {
+      try { source = new URL(event.referrer).hostname || source; } catch { source = 'Other'; }
+    }
+    referrers.set(source, (referrers.get(source) || 0) + 1);
+  }
+
+  const toBreakdown = (map) => Array.from(map, ([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  return {
+    totalLinks: ownedLinks.length,
+    activeLinks: ownedLinks.filter((link) => link.status === 'active').length,
+    totalClicks,
+    sampledClicks: events.length,
+    topLinks: ownedLinks.slice(0, 8).map((link) => ({
+      code: link.code,
+      title: link.title,
+      clicks: Number(link.clicks || 0),
+      status: link.status,
+    })),
+    devices: toBreakdown(devices),
+    referrers: toBreakdown(referrers),
+    recentClicks,
+  };
+}
+
 async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   const { data, error } = await supabase
     .from('short_links')
@@ -138,5 +207,6 @@ module.exports = {
   createShortLink,
   updateShortLink,
   deleteShortLink,
+  getAnalyticsOverview,
   resolveShortLink,
 };

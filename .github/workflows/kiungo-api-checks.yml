@@ -1,5 +1,8 @@
 name: Kiungo API checks
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -57,3 +60,30 @@ jobs:
           name: linkhub-lockfile
           path: linkhub/package-lock.json
           if-no-files-found: error
+
+  commit-security-lockfiles:
+    if: github.event_name == 'push'
+    needs: [api-tests, frontend-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Update and verify both dependency lockfiles
+        run: |
+          (cd kiungo-api && npm audit fix --package-lock-only --ignore-scripts && npm audit --audit-level=moderate)
+          (cd linkhub && npm audit fix --package-lock-only --ignore-scripts && npm audit --audit-level=moderate)
+      - name: Commit security updates to the rebuild branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kiungo-api/package-lock.json linkhub/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update audited dependency lockfiles"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "Dependency lockfiles are already current."
+          fi

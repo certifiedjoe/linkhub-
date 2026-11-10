@@ -54,22 +54,46 @@ function base(): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  // Attach the Supabase access token when signed in. The API verifies it and derives
-  // ownership from the user id inside; it never trusts a client-supplied identity.
+  // Attach the Supabase access token when signed in. The API derives ownership
+  // from the verified token, never from a client-supplied identity.
   const token = await accessToken().catch(() => null);
-  const res = await fetch(`${base()}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {}),
-    },
-  });
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  if (res.status === 401) throw new AuthRequiredError((data && data.error) || 'Please sign in to continue.');
-  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
-  return data as T;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+
+  try {
+    const res = await fetch(`${base()}${path}`, {
+      ...init,
+      signal: init?.signal || controller.signal,
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers || {}),
+      },
+    });
+
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      if (res.status !== 204) throw new Error('The API returned an unreadable response. Please try again.');
+    }
+
+    const message = data && typeof data === 'object' && 'error' in data
+      ? String((data as { error: unknown }).error)
+      : '';
+    if (res.status === 401) throw new AuthRequiredError(message || 'Please sign in to continue.');
+    if (!res.ok) throw new Error(message || `Request failed (${res.status})`);
+    return data as T;
+  } catch (error) {
+    if (error instanceof AuthRequiredError || error instanceof Error && !['AbortError','TypeError'].includes(error.name)) throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The request took too long. Check your connection and try again.');
+    }
+    throw new Error('Could not reach Kiungo. Check your connection and try again.');
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 /** Thrown on a 401 so callers can send the user to the sign-in screen. */

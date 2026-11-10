@@ -48,7 +48,7 @@ function sanitizeShortLinkInput(body = {}, { partial = false } = {}) {
   if (!partial || Object.hasOwn(body, 'destinationUrl') || Object.hasOwn(body, 'destination_url')) {
     const raw = body.destinationUrl ?? body.destination_url;
     output.destination_url = httpUrl(raw, 'Destination URL');
-    if (!output.destination_url && !partial) throw badRequest('A destination URL is required.');
+    if (!output.destination_url) throw badRequest('A destination URL is required.');
   }
 
   if (!partial || Object.hasOwn(body, 'code')) {

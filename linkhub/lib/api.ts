@@ -9,6 +9,19 @@ export type LinkItem = {
   clicks?: number;
 };
 
+export type AnalyticsBreakdown = { label: string; count: number };
+
+export type AnalyticsOverview = {
+  totalLinks: number;
+  activeLinks: number;
+  totalClicks: number;
+  sampledClicks: number;
+  topLinks: Array<{ code: string; title: string; clicks: number; status: 'active' | 'paused' }>;
+  devices: AnalyticsBreakdown[];
+  referrers: AnalyticsBreakdown[];
+  recentClicks: Array<{ code: string; title: string; device: string; referrer: string; createdAt: string }>;
+};
+
 export type ShortLink = {
   id: string;
   code: string;
@@ -141,6 +154,7 @@ export const api = {
   remove: (username: string) => request<{ deleted: string }>(`/api/profiles/${encodeURIComponent(username)}`, { method: 'DELETE' }),
   countView: (username: string) => request<{ views: number }>(`/api/profiles/${encodeURIComponent(username)}/view`, { method: 'POST' }),
   countClick: (id: number | string) => request<{ ok: boolean }>(`/api/links/${id}/click`, { method: 'POST' }),
+  analyticsOverview: () => request<AnalyticsOverview>('/api/analytics/overview'),
   shortLinks: () => request<ShortLink[]>('/api/short-links'),
   createShortLink: (draft: ShortLinkDraft) => request<ShortLink>('/api/short-links', { method: 'POST', body: JSON.stringify(draft) }),
   updateShortLink: (id: string, draft: Partial<ShortLinkDraft>) => request<ShortLink>(`/api/short-links/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(draft) }),

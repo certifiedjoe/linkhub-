@@ -141,19 +141,19 @@ function Home({ go }: { go: (to: string) => void }) {
   ];
 
   return (
-    <div>
+    <div className="home-page">
       {/* Hero */}
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:py-20">
+      <section className="home-hero mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:py-24">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border bg-raised px-3 py-1 text-xs font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Free while in beta
           </span>
-          <h1 className="mt-5 font-display text-[clamp(2.25rem,6vw,3.75rem)] font-semibold">
-            One link for everything you share.
+          <p className="home-kicker">YOUR DIGITAL HOME, ALL IN ONE LINK</p>
+          <h1 className="home-title mt-5 font-display text-[clamp(2.7rem,6.5vw,5.2rem)] font-semibold">
+            One link.<br /><span>Endless possibilities.</span>
           </h1>
-          <p className="mt-5 max-w-[52ch] text-lg text-muted">
-            Kiungo turns your photo and all your links into a single page with its own address — built to drop into
-            every social bio you have.
+          <p className="mt-5 max-w-[48ch] text-lg leading-relaxed text-muted">
+            Bring your content, community and business together. Create a beautiful page for everything you want people to discover — then share it everywhere.
           </p>
 
           <form
@@ -178,12 +178,16 @@ function Home({ go }: { go: (to: string) => void }) {
               Claim it <ArrowRight className="h-4 w-4" />
             </button>
           </form>
-          <p className="mt-3 text-sm text-muted">No account needed to try it. Your page is live the moment you publish.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-muted">
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Free to get started</span>
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> No code required</span>
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Made for mobile</span>
+          </div>
         </div>
 
-        <div className="relative">
+        <div className="home-preview relative">
           <div
-            className="pointer-events-none absolute -inset-8 -z-10 rounded-full opacity-40 blur-3xl"
+            className="pointer-events-none absolute -inset-8 -z-10 rounded-full opacity-50 blur-3xl"
             style={{ background: 'radial-gradient(circle at 60% 30%, hsl(var(--accent) / 0.5), transparent 65%)' }}
             aria-hidden
           />

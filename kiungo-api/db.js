@@ -3,7 +3,9 @@ const { createClient } = require('@supabase/supabase-js');
 const config = require('./config');
 
 if (!config.supabase.url || !config.supabase.serviceRoleKey) {
-  console.warn('⚠️  Supabase credentials missing. Backend will not work properly.');
+  throw new Error(
+    'Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in kiungo-api/.env.'
+  );
 }
 
 const supabase = createClient(
@@ -13,6 +15,9 @@ const supabase = createClient(
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+    global: {
+      headers: { 'X-Client-Info': 'kiungo-api' },
     },
   }
 );

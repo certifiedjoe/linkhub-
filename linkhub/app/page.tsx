@@ -141,9 +141,9 @@ function Home({ go }: { go: (to: string) => void }) {
   }, []);
 
   const steps = [
-    { Icon: ImagePlus, title: 'Add your photo', body: 'Upload a picture and write a one-line bio. It is cropped and optimised for you.' },
-    { Icon: Plus, title: 'Add your buttons', body: 'One button per destination — Instagram, WhatsApp, shop, booking form, anything.' },
-    { Icon: MousePointerClick, title: 'Share one link', body: 'Put your Kiungo address in every bio and send traffic wherever you want.' },
+    { Icon: Link2, title: 'Shorten any URL', body: 'Turn long destinations into clean, shareable links with a custom ending.' },
+    { Icon: MousePointerClick, title: 'Route every visitor', body: 'Send iOS and Android visitors to the right app destination, with a web fallback.' },
+    { Icon: BarChart3, title: 'Measure performance', body: 'Track clicks and see which links bring people to your content.' },
   ];
 
   return (
@@ -154,12 +154,12 @@ function Home({ go }: { go: (to: string) => void }) {
           <span className="inline-flex items-center gap-2 rounded-full border bg-raised px-3 py-1 text-xs font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Free while in beta
           </span>
-          <p className="home-kicker">YOUR DIGITAL HOME, ALL IN ONE LINK</p>
+          <p className="home-kicker">SHORT LINKS, SMART ROUTING, ONE WORKSPACE</p>
           <h1 className="home-title mt-5 font-display text-[clamp(2.7rem,6.5vw,5.2rem)] font-semibold">
-            One link.<br /><span>Endless possibilities.</span>
+            Shorten. Route.<br /><span>Grow smarter.</span>
           </h1>
           <p className="mt-5 max-w-[48ch] text-lg leading-relaxed text-muted">
-            Bring your content, community and business together. Create a beautiful page for everything you want people to discover — then share it everywhere.
+            Create memorable short links, route people to the right app or web destination, and understand what gets clicked. Keep your bio page and all your links in one simple workspace.
           </p>
 
           <form
@@ -206,7 +206,7 @@ function Home({ go }: { go: (to: string) => void }) {
       {/* How it works */}
       <section className="border-y bg-raised/50">
         <div className="mx-auto max-w-6xl px-5 py-14">
-          <h2 className="font-display text-xl font-semibold">Three steps, about two minutes</h2>
+          <h2 className="font-display text-xl font-semibold">One workspace. Three simple steps.</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {steps.map(({ Icon, title, body }, i) => (
               <div key={title} className="card p-5">
@@ -228,17 +228,16 @@ function Home({ go }: { go: (to: string) => void }) {
       <section className="mx-auto max-w-6xl px-5 py-14">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div>
-            <h2 className="font-display text-xl font-semibold">See what your audience actually taps</h2>
+            <h2 className="font-display text-xl font-semibold">Understand what happens after every tap</h2>
             <p className="mt-3 max-w-[54ch] text-muted">
-              Every page counts its views, and every button counts its clicks. Reorder your buttons so the ones that
-              earn go to the top.
+              Kiungo brings your short-link activity and bio-page engagement together, so you can understand what people open and where they go.
             </p>
             <ul className="mt-6 space-y-3 text-sm">
               {[
-                'Page views and per-button clicks, visible only to you',
-                'Drag-free reordering — move any button up or down',
-                'Four page styles, light and dark friendly',
-                'Works on any phone, no app to install',
+                'Short-link clicks and bio-page button activity',
+                'Smart destinations for iOS and Android visitors',
+                'QR codes and scan analytics as the next build phase',
+                'Clear performance data in one workspace',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />

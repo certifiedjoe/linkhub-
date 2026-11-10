@@ -16,6 +16,14 @@ function escapeHtml(value) {
   })[char]);
 }
 
+router.get('/analytics/overview', requireUser, async (req, res, next) => {
+  try {
+    res.json(await shortLinksService.getAnalyticsOverview(req.userId));
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/short-links', requireUser, async (req, res, next) => {
   try {
     res.json(await shortLinksService.getMyShortLinks(req.userId));

@@ -3,7 +3,7 @@ const { randomBytes } = require('node:crypto');
 const { supabase } = require('../db');
 const { sanitizeShortLinkInput } = require('../utils/shortLinks');
 
-const FIELDS = 'id, owner, code, title, destination_url, ios_url, android_url, fallback_url, status, expires_at, clicks, created_at, updated_at';
+const FIELDS = 'id, owner, code, title, destination_url, ios_url, android_url, fallback_url, ios_store_url, android_store_url, status, expires_at, clicks, created_at, updated_at';
 
 function httpError(status, message) {
   const error = new Error(message);
@@ -20,6 +20,8 @@ function present(row) {
     iosUrl: row.ios_url,
     androidUrl: row.android_url,
     fallbackUrl: row.fallback_url,
+    iosStoreUrl: row.ios_store_url || null,
+    androidStoreUrl: row.android_store_url || null,
     status: row.status,
     expiresAt: row.expires_at,
     clicks: Number(row.clicks || 0),
@@ -167,7 +169,7 @@ async function getAnalyticsOverview(ownerId) {
 async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   const { data, error } = await supabase
     .from('short_links')
-    .select('id, destination_url, ios_url, android_url, fallback_url, status, expires_at')
+    .select('id, destination_url, ios_url, android_url, fallback_url, ios_store_url, android_store_url, status, expires_at')
     .eq('code', String(code || '').toLowerCase())
     .maybeSingle();
 
@@ -201,7 +203,7 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   }
 
   return deepLink
-    ? { deepLink, fallback: destination }
+    ? { deepLink, fallback: destination, storeFallback: isIOS ? data.ios_store_url || null : isAndroid ? data.android_store_url || null : null, universalLink: /^https:\/\//i.test(deepLink) }
     : { destination };
 }
 

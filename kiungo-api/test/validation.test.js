@@ -32,7 +32,7 @@ test('sanitizeLinks rejects malformed and duplicate IDs', () => {
   );
 });
 
-test('safeUrl blocks non-web executable protocols', () => {
-  assert.equal(safeUrl('javascript:alert(1)'), 'https://javascript:alert(1)');
+test('safeUrl rejects malformed executable-protocol input', () => {
+  assert.equal(safeUrl('javascript:alert(1)'), null);
   assert.equal(safeUrl('https://example.com'), 'https://example.com/');
 });

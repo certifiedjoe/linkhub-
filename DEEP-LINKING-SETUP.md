@@ -1,44 +1,40 @@
-# Native deep-link setup
+# Website smart routing
 
-Kiungo now supports the web/API side of native smart links:
+Kiungo's short links can route visitors to different web destinations based on their device.
 
-- Per-link iOS and Android app destinations.
-- Custom URL-scheme handoff with App Store / Google Play fallback.
-- HTTPS Universal Link / Android App Link handoff (a top-level HTTP redirect is used so the OS can perform domain verification).
-- Root-level association endpoints at `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json`.
+## How routing works
 
-## Required database migration
+Each short link has:
+- **Main destination**: required default website URL.
+- **Mobile destination**: optional URL used for mobile browser user agents.
+- **Desktop destination**: optional URL used for desktop browser user agents.
+- **Unknown-device fallback**: optional URL used when the visitor's user agent cannot be identified.
 
-Apply `supabase/migrations/20261110150000_add_smart_link_store_fallbacks.sql` to the Kiungo Supabase project before deploying this API version. The API selects the two new columns, so deploying the API before the migration will cause short-link reads to fail. This repository change does not apply the migration to the live database.
+If a device-specific URL is not configured, Kiungo uses the main destination. If the user agent is missing or not recognized as a browser, Kiungo uses the fallback URL, or the main destination when no fallback is configured.
 
-## Configure the association files
+Routing is based on the browser's user-agent string. It is a best-effort device classification, not a guarantee of screen size or device identity. Visitors can change or mask user agents.
 
-Set these server-side environment variables on the API host:
+## Database migration
 
-- `IOS_APP_ID`: Apple Team ID followed by the app bundle ID, e.g. `ABCDE12345.com.example.kiungo`.
-- `ANDROID_PACKAGE_NAME`: exact Android application ID, e.g. `com.example.kiungo`.
-- `ANDROID_SHA256_CERT_FINGERPRINTS`: comma-separated SHA-256 fingerprints for the signing certificate(s) used by the Play release (and any other supported release channel).
+Before deploying this API version, apply:
 
-The API returns HTTP 503 for an association file until its required values are configured. Once configured, verify both files over public HTTPS on the exact domain used by the links. Keep the files publicly accessible without authentication or redirects.
+`supabase/migrations/20261110170000_add_web_device_destinations.sql`
 
-## Native app configuration still required
+This adds nullable `mobile_url` and `desktop_url` columns to `public.short_links`. The migration is committed to the repository but has not been applied to the live Supabase database.
 
-The iOS app must enable Associated Domains and add `applinks:<API_LINK_HOST>`; the Android app must declare an HTTPS App Link intent filter for the same host and verify it. The iOS app must handle the incoming `/api/r/<code>` URL, and Android must route that URI to the correct screen. The app's signing identities and identifiers must match the server association documents exactly.
+The previous native app store-fallback migration is not required for this website-only implementation.
 
-In the Short links workspace, configure each link's iOS/Android destination as either:
-- a custom app scheme such as `kiungo://product/123` (the server tries it and then uses the relevant store URL, or the web fallback); or
-- an HTTPS Universal/App Link on a domain that is associated with the installed app. HTTPS links are redirected directly to the OS so verified app-link handling is not broken by an intermediate HTML page.
+## Important fallback limitation
 
-Set the optional iOS App Store and Google Play URLs for custom-scheme fallback. Always provide a useful web fallback.
+A normal HTTP redirect cannot reliably determine whether a remote destination page later fails to load. Kiungo therefore does not claim to detect broken destination websites automatically. The configured fallback is used for unknown devices, while missing device-specific URLs fall back to the main destination. An availability monitor could be added separately, with safeguards against unsafe URL fetching.
 
-## Deferred deep linking limitation
+## Testing
 
-Deferred deep linking means carrying a click's intended destination through an app installation and recovering it on first launch. It cannot be completed by this web repository alone: it requires native first-launch handling and a matching attribution/install-referrer strategy (iOS has no general-purpose install-referrer equivalent). The current implementation does not claim to provide deferred deep linking. Once the native apps exist, add a short-lived, signed click token and native redemption flow, with explicit consent and retention controls.
+API tests cover:
+- Mobile browser routing.
+- Desktop browser routing.
+- Unknown user-agent fallback.
+- Main destination fallback when device-specific URLs are omitted.
+- HTTP(S)-only validation for configured web destinations.
 
-## Production verification
-
-1. Apply the migration, deploy the API, and configure the three environment variables.
-2. Confirm both `/.well-known/` documents return valid JSON with HTTP 200 and no redirect.
-3. Install signed iOS and Android builds on physical devices and test links with the apps installed and absent.
-4. Test custom scheme fallbacks to each store, web fallback, expired links, paused links, and desktop behavior.
-5. Do not call app-link verification complete until the OS reports the domain as verified on real devices.
+No mobile app, App Store, Play Store, Universal Link or Android App Link integration is needed for this website-only feature.

@@ -44,7 +44,9 @@ const DEMO: ProfileDraft = {
 };
 
 function useHashRoute() {
-  const [route, setRoute] = useState<Route | null>(null);
+  // Render the public homepage immediately on the server. The hash route is
+  // applied after hydration, avoiding a full-screen loading gate on first visit.
+  const [route, setRoute] = useState<Route>({ view: 'home' });
 
   useEffect(() => {
     const read = () => setRoute(parseHash(window.location.hash));
@@ -489,11 +491,6 @@ function LoadingScreen() {
 
 function Shell() {
   const { route, go } = useHashRoute();
-
-  // Show polished loading screen until hash is read
-  if (!route) {
-    return <LoadingScreen />;
-  }
 
   // Public profiles are readable by anyone
   if (route.view === 'profile') {

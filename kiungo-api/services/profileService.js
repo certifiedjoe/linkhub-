@@ -8,20 +8,8 @@ const {
   sanitizeLinks,
 } = require('../utils/validation');
 
-async function hydrate(profile) {
-  if (!profile) return null;
-
-  const { data: links, error } = await supabase
-    .from('links')
-    .select('id, label, url, icon, position, clicks')
-    .eq('profile_id', profile.id)
-    .order('position', { ascending: true })
-    .order('id', { ascending: true });
-
-  if (error) throw error;
-
-  const totalClicks = (links || []).reduce((sum, l) => sum + (l.clicks || 0), 0);
-
+function toHydrated(profile, links = []) {
+  const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
   return {
     id: profile.id,
     username: profile.username,
@@ -33,8 +21,42 @@ async function hydrate(profile) {
     textColor: profile.text_color,
     views: profile.views,
     totalClicks,
-    links: links || [],
+    links,
   };
+}
+
+async function hydrate(profile) {
+  if (!profile) return null;
+  const { data: links, error } = await supabase
+    .from('links')
+    .select('id, label, url, icon, position, clicks')
+    .eq('profile_id', profile.id)
+    .order('position', { ascending: true })
+    .order('id', { ascending: true });
+  if (error) throw error;
+  return toHydrated(profile, links || []);
+}
+
+// Dashboard and showcase hydration uses one links query for all profiles,
+// avoiding one database round-trip per profile.
+async function hydrateMany(profiles) {
+  if (!profiles.length) return [];
+  const ids = profiles.map((profile) => profile.id);
+  const { data: links, error } = await supabase
+    .from('links')
+    .select('id, profile_id, label, url, icon, position, clicks')
+    .in('profile_id', ids)
+    .order('position', { ascending: true })
+    .order('id', { ascending: true });
+  if (error) throw error;
+
+  const grouped = new Map();
+  for (const link of links || []) {
+    const key = String(link.profile_id);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(link);
+  }
+  return profiles.map((profile) => toHydrated(profile, grouped.get(String(profile.id)) || []));
 }
 
 async function findByUsername(username) {
@@ -56,7 +78,7 @@ async function getMyProfiles(userId) {
     .order('id', { ascending: false });
 
   if (error) throw error;
-  return Promise.all((data || []).map(hydrate));
+  return hydrateMany(data || []);
 }
 
 async function getShowcase(limit = 12) {

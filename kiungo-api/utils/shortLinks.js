@@ -15,4 +15,12 @@ function sanitizeShortLinkInput(body={}, {partial=false}={}) {
  if(!partial||Object.hasOwn(body,'expiresAt')||Object.hasOwn(body,'expires_at')){const raw=body.expiresAt??body.expires_at;if(raw==null||raw==='')output.expires_at=null;else{const date=new Date(raw);if(!Number.isFinite(date.getTime()))throw badRequest('Expiry date is invalid.');output.expires_at=date.toISOString();}}
  return output;
 }
-module.exports={sanitizeShortLinkInput};
+function selectWebDestination(link, userAgent = '') {
+ const agent = String(userAgent || '').slice(0, 500);
+ const isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(agent);
+ const isKnownBrowser = /Mozilla|Chrome|Safari|Firefox|Edg|Opera|Android|iPhone|iPad|iPod|Windows NT|Macintosh|X11/i.test(agent);
+ if (!isKnownBrowser) return { destination: link.fallback_url || link.destination_url, device: 'unknown' };
+ if (isMobile) return { destination: link.mobile_url || link.destination_url, device: 'mobile' };
+ return { destination: link.desktop_url || link.destination_url, device: 'desktop' };
+}
+module.exports={sanitizeShortLinkInput,selectWebDestination};

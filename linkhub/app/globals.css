@@ -253,3 +253,33 @@
   .home-hero::before { inset: 1rem 0 auto; height: 100%; border-radius: 1.5rem; }
   .home-preview { padding: .25rem; }
 }
+
+
+/* ---- Builder, dashboard and profile experience ---- */
+.builder-shell { animation: rise 420ms cubic-bezier(.2,.8,.2,1) both; }
+.builder-toolbar { position: sticky; top: .75rem; z-index: 20; }
+.builder-section { scroll-margin-top: 6rem; }
+.builder-section > h2 { letter-spacing: -.025em; }
+.builder-section input, .builder-section textarea, .builder-section select {
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+.builder-section input:focus, .builder-section textarea:focus, .builder-section select:focus {
+  box-shadow: 0 0 0 4px hsl(var(--accent) / .12);
+}
+.builder-preview > div:first-child { min-height: 2rem; }
+.builder-preview .rounded-\[36px\] {
+  box-shadow: 0 24px 65px -32px hsl(var(--shadow) / .55), 0 0 0 1px hsl(var(--line) / .7);
+}
+.profile-stage { isolation: isolate; }
+.profile-btn:focus-visible { outline: 3px solid hsl(var(--p-ring)); outline-offset: 3px; }
+@media (max-width: 1023px) {
+  .builder-toolbar { top: .5rem; }
+  .builder-preview { max-width: 420px; width: 100%; margin-inline: auto; }
+}
+@media (max-width: 640px) {
+  .builder-toolbar { margin-inline: -.25rem; border-radius: 1rem; }
+  .builder-toolbar > div { flex: 1 1 100%; order: -1; }
+  .builder-toolbar > button[data-testid="button-back"] { margin-left: 0; }
+  .builder-toolbar > div.ml-auto { margin-left: 0; }
+  .builder-section { border-radius: 1.1rem; }
+}

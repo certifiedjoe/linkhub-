@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Kiungo — One link for everything you share',
+  title: 'Kiungo — Short links, smart routing and bio pages',
   description:
-    'Build a profile page in minutes: add your photo, add every link you want people to tap, and share one address across all your social networks.',
+    'Create short links, route visitors to the right destination, track clicks and build a shareable bio page in one workspace.',
   openGraph: {
     title: 'Kiungo — One link for everything you share',
-    description: 'Your photo, your links, one shareable address. Built for creators and small businesses.',
+    description: 'Short links, smart destinations, click analytics and bio pages for creators and businesses.',
     type: 'website',
   },
 };

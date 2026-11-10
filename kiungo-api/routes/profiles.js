@@ -52,7 +52,7 @@ router.post('/profiles', requireUser, createLimiter, async (req, res, next) => {
   }
 });
 
-router.put('/profiles/:username', requireUser, async (req, res, next) => {
+router.put('/profiles/:username', requireUser, strictLimiter, async (req, res, next) => {
   try {
     const profile = await profileService.updateProfile(req.params.username, req.userId, req.body);
     res.json(profile);

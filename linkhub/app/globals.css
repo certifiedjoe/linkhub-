@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface: 38 40% 97%;
+    --raised: 0 0% 100%;
+    --ink: 24 14% 12%;
+    --muted: 24 8% 44%;
+    --line: 28 16% 88%;
+    --accent: 14 84% 52%;
+    --accent-ink: 0 0% 100%;
+    --shadow: 24 20% 10%;
+  }
+
+  .dark {
+    --surface: 24 12% 8%;
+    --raised: 24 10% 12%;
+    --ink: 38 34% 95%;
+    --muted: 30 8% 62%;
+    --line: 28 8% 22%;
+    --accent: 16 88% 58%;
+    --accent-ink: 24 30% 8%;
+    --shadow: 0 0% 0%;
+  }
+
+  * {
+    border-color: hsl(var(--line));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: hsl(var(--surface));
+    color: hsl(var(--ink));
+    font-family: 'Satoshi', Inter, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Clash Display', 'Satoshi', sans-serif;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.22);
+  }
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-xl border bg-raised px-3.5 py-2.5 text-[15px] text-ink placeholder:text-muted/70 transition-colors;
+  }
+  .field:focus {
+    @apply border-accent outline-none ring-4 ring-accent/15;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 disabled:pointer-events-none disabled:opacity-50;
+    min-height: 44px;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-accent-ink shadow-soft hover:brightness-110 active:scale-[0.985];
+  }
+  .btn-ghost {
+    @apply btn border bg-raised text-ink hover:bg-line/40 active:scale-[0.985];
+  }
+  .btn-quiet {
+    @apply btn px-3 text-muted hover:bg-line/40 hover:text-ink;
+  }
+
+  .card {
+    @apply rounded-2xl border bg-raised shadow-soft;
+  }
+}
+
+/* ---- Public profile themes ---- */
+.theme-ember {
+  --p-bg: 24 30% 9%;
+  --p-bg2: 14 60% 16%;
+  --p-fg: 36 40% 96%;
+  --p-muted: 30 14% 68%;
+  --p-btn: 36 40% 96%;
+  --p-btn-fg: 24 30% 10%;
+  --p-ring: 14 84% 58%;
+}
+.theme-daylight {
+  --p-bg: 40 44% 96%;
+  --p-bg2: 32 60% 88%;
+  --p-fg: 24 18% 14%;
+  --p-muted: 24 10% 42%;
+  --p-btn: 24 18% 14%;
+  --p-btn-fg: 40 44% 97%;
+  --p-ring: 14 84% 52%;
+}
+.theme-tide {
+  --p-bg: 205 45% 11%;
+  --p-bg2: 190 50% 20%;
+  --p-fg: 190 30% 96%;
+  --p-muted: 195 14% 70%;
+  --p-btn: 190 30% 96%;
+  --p-btn-fg: 205 45% 12%;
+  --p-ring: 186 72% 52%;
+}
+.theme-bloom {
+  --p-bg: 320 28% 12%;
+  --p-bg2: 292 40% 24%;
+  --p-fg: 320 24% 97%;
+  --p-muted: 315 12% 72%;
+  --p-btn: 320 24% 97%;
+  --p-btn-fg: 320 28% 13%;
+  --p-ring: 318 70% 62%;
+}
+
+.profile-stage {
+  background: radial-gradient(120% 80% at 50% 0%, hsl(var(--p-bg2)) 0%, hsl(var(--p-bg)) 62%);
+  color: hsl(var(--p-fg));
+}
+
+.profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.875rem 1.125rem;
+  border-radius: 16px;
+  background: hsl(var(--p-btn));
+  color: hsl(var(--p-btn-fg));
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 1px 0 hsl(var(--p-bg) / 0.4);
+}
+.profile-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -12px hsl(var(--p-ring) / 0.7);
+}
+.profile-btn:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--line) / 0.5);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, hsl(var(--raised) / 0.6), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.rise {
+  animation: rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

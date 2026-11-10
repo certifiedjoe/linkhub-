@@ -1,0 +1,34 @@
+{
+  "name": "linkhub",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test:auth": "node scripts/test-auth.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "autoprefixer": "^10.5.4",
+    "better-sqlite3": "^12.11.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
+    "jose": "^6.2.8",
+    "lucide-react": "^1.29.0",
+    "next": "^16.3.0",
+    "postcss": "^8.5.26",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.7.0",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

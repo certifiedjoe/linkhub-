@@ -54,7 +54,7 @@ function sanitizeLinks(links = []) {
     // IDs are preserved as decimal strings to avoid JavaScript bigint precision loss.
     const id = link.id == null || link.id === '' ? null : String(link.id);
     if (id !== null) {
-      if (!/^\\d+$/.test(id) || seenIds.has(id)) {
+      if (!/^\d+$/.test(id) || seenIds.has(id)) {
         const err = new Error('Invalid or duplicate link id.');
         err.status = 400;
         throw err;

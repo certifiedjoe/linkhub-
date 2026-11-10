@@ -12,6 +12,8 @@ export function ShortLinksDashboard() {
   const [iosUrl, setIosUrl] = useState('');
   const [androidUrl, setAndroidUrl] = useState('');
   const [fallbackUrl, setFallbackUrl] = useState('');
+  const [iosStoreUrl, setIosStoreUrl] = useState('');
+  const [androidStoreUrl, setAndroidStoreUrl] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [advanced, setAdvanced] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,6 +45,8 @@ export function ShortLinksDashboard() {
       ...(iosUrl.trim() ? { iosUrl: iosUrl.trim() } : {}),
       ...(androidUrl.trim() ? { androidUrl: androidUrl.trim() } : {}),
       ...(fallbackUrl.trim() ? { fallbackUrl: fallbackUrl.trim() } : {}),
+      ...(iosStoreUrl.trim() ? { iosStoreUrl: iosStoreUrl.trim() } : {}),
+      ...(androidStoreUrl.trim() ? { androidStoreUrl: androidStoreUrl.trim() } : {}),
       ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
     };
     try {
@@ -53,6 +57,8 @@ export function ShortLinksDashboard() {
       setIosUrl('');
       setAndroidUrl('');
       setFallbackUrl('');
+      setIosStoreUrl('');
+      setAndroidStoreUrl('');
       setExpiresAt('');
       setAdvanced(false);
       setNotice('Your short link is ready.');
@@ -156,6 +162,8 @@ export function ShortLinksDashboard() {
               <label className="block space-y-1"><span className="text-xs font-medium">iOS app link</span><input value={iosUrl} onChange={e => setIosUrl(e.target.value)} placeholder="myapp://open/page" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
               <label className="block space-y-1"><span className="text-xs font-medium">Android app link</span><input value={androidUrl} onChange={e => setAndroidUrl(e.target.value)} placeholder="myapp://open/page" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
               <label className="block space-y-1"><span className="text-xs font-medium">Web fallback</span><input type="url" value={fallbackUrl} onChange={e => setFallbackUrl(e.target.value)} placeholder="https://example.com" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
+              <label className="block space-y-1"><span className="text-xs font-medium">iOS App Store URL · optional</span><input type="url" value={iosStoreUrl} onChange={e => setIosStoreUrl(e.target.value)} placeholder="https://apps.apple.com/app/id…" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
+              <label className="block space-y-1"><span className="text-xs font-medium">Google Play Store URL · optional</span><input type="url" value={androidStoreUrl} onChange={e => setAndroidStoreUrl(e.target.value)} placeholder="https://play.google.com/store/apps/details?id=…" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
             </div>
           ) : null}
           {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}

@@ -109,11 +109,12 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   const agent = String(userAgent).slice(0, 500);
   const isIOS = /iPhone|iPad|iPod/i.test(agent);
   const isAndroid = /Android/i.test(agent);
-  const destination = isIOS && data.ios_url
+  const deepLink = isIOS && data.ios_url
     ? data.ios_url
     : isAndroid && data.android_url
       ? data.android_url
-      : data.fallback_url || data.destination_url;
+      : null;
+  const destination = data.fallback_url || data.destination_url;
 
   const safeReferrer = String(referrer || '').slice(0, 500) || null;
   const device = isIOS ? 'ios' : isAndroid ? 'android' : /Mobile/i.test(agent) ? 'mobile' : 'desktop';
@@ -127,7 +128,9 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
     console.error('[Short link analytics]', eventError.message || eventError);
   }
 
-  return destination;
+  return deepLink
+    ? { deepLink, fallback: destination }
+    : { destination };
 }
 
 module.exports = {

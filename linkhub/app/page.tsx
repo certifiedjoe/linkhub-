@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, Eye, ImagePlus, LayoutGrid, Moon, MousePointerClick, Pencil, Plus, Sun, Mail, MessageCircle, Link2 } from 'lucide-react';
+import { ArrowRight, BarChart3, Eye, ImagePlus, LayoutGrid, Moon, MousePointerClick, Pencil, Plus, Sun, Mail, MessageCircle, Link2, QrCode } from 'lucide-react';
 import { api, type Profile, type ProfileDraft } from '@/lib/api';
 import { Logo, Wordmark } from '@/components/logo';
 import { Builder } from '@/components/builder';
 import { ShortLinksDashboard } from '@/components/short-links-dashboard';
 import { AnalyticsDashboard } from '@/components/analytics-dashboard';
+import { QrCodesDashboard } from '@/components/qr-codes-dashboard';
 import { ProfileStage, PublicProfile, ShareBar, prettyUrl } from '@/components/profile-view';
 import { AuthGate, AuthProvider, DemoModeNotice, SignInPanel, UserMenu, useAuth, ResetPasswordPanel } from '@/components/auth';
 
@@ -17,6 +18,7 @@ type Route =
   | { view: 'dashboard' }
   | { view: 'links' }
   | { view: 'analytics' }
+  | { view: 'qr-codes' }
   | { view: 'signin' }
   | { view: 'reset-password' }
   | { view: 'profile'; username: string };
@@ -28,6 +30,7 @@ function parseHash(hash: string): Route {
   if (head === 'dashboard') return { view: 'dashboard' };
   if (head === 'links') return { view: 'links' };
   if (head === 'analytics') return { view: 'analytics' };
+  if (head === 'qr-codes') return { view: 'qr-codes' };
   if (head === 'build') return { view: 'build', username: tail };
   if (head === 'edit' && tail) return { view: 'edit', username: tail };
   if (head === 'signin' || head === 'login') return { view: 'signin' };
@@ -107,6 +110,10 @@ function Header({ go }: { go: (to: string) => void }) {
               <button onClick={() => go('/links')} className="btn-quiet whitespace-nowrap" aria-label="Short links" data-testid="link-short-links">
                 <Link2 className="h-4 w-4 sm:hidden" />
                 <span className="hidden sm:inline">Short links</span>
+              </button>
+              <button onClick={() => go('/qr-codes')} className="btn-quiet whitespace-nowrap" aria-label="QR codes" data-testid="link-qr-codes">
+                <QrCode className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">QR codes</span>
               </button>
               <button onClick={() => go('/analytics')} className="btn-quiet whitespace-nowrap" aria-label="Analytics" data-testid="link-analytics">
                 <BarChart3 className="h-4 w-4 sm:hidden" />
@@ -416,6 +423,7 @@ function Dashboard({ go }: { go: (to: string) => void }) {
         <div><p className="text-xs font-bold uppercase tracking-[.16em] text-accent">Your workspace</p><h1 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">My pages</h1><p className="mt-1 text-sm text-muted">Manage your pages and keep track of how they perform.</p></div>
         <button onClick={() => go('/links')} className="btn-quiet ml-auto" data-testid="button-short-links"><Link2 className="h-4 w-4" /> Short links</button>
         <button onClick={() => go('/analytics')} className="btn-quiet" data-testid="button-analytics"><BarChart3 className="h-4 w-4" /> Analytics</button>
+        <button onClick={() => go('/qr-codes')} className="btn-quiet" data-testid="button-qr-codes"><QrCode className="h-4 w-4" /> QR codes</button>
         <button onClick={() => go('/build')} className="btn-primary" data-testid="button-new-page">
           <Plus className="h-4 w-4" /> New page
         </button>
@@ -520,6 +528,11 @@ function Shell() {
       {route.view === 'home' ? <Home go={go} /> : null}
       {route.view === 'signin' ? <SignInPanel /> : null}
       {route.view === 'reset-password' ? <ResetPasswordPanel /> : null}
+      {route.view === 'qr-codes' ? (
+        <AuthGate heading="Sign in to create QR codes" blurb="Generate QR codes for your short links and download them for print or digital sharing.">
+          <QrCodesDashboard />
+        </AuthGate>
+      ) : null}
       {route.view === 'analytics' ? (
         <AuthGate heading="Sign in to view analytics" blurb="See link clicks, top destinations, devices and referrers.">
           <AnalyticsDashboard />

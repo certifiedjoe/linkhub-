@@ -90,7 +90,7 @@ async function getShowcase(limit = 12) {
     .limit(limit);
 
   if (error) throw error;
-  return Promise.all((data || []).map(hydrate));
+  return hydrateMany(data || []);
 }
 
 async function getPublicProfile(username, requesterId = null) {

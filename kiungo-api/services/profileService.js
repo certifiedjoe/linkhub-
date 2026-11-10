@@ -1,6 +1,9 @@
 // services/profileService.js
 const { supabase } = require('../db');
 const config = require('../config');
+
+// Fetch only fields used by the API response; avoid shipping internal columns.
+const PROFILE_FIELDS = 'id, owner, username, display_name, tagline, avatar, theme, font_family, text_color, views';
 const {
   normalizeUsername,
   validUsername,
@@ -62,7 +65,7 @@ async function hydrateMany(profiles) {
 async function findByUsername(username) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_FIELDS)
     .eq('username', username)
     .maybeSingle();
 
@@ -73,7 +76,7 @@ async function findByUsername(username) {
 async function getMyProfiles(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_FIELDS)
     .eq('owner', userId)
     .order('id', { ascending: false });
 
@@ -84,7 +87,7 @@ async function getMyProfiles(userId) {
 async function getShowcase(limit = 12) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_FIELDS)
     .order('views', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit);

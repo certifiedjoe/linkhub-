@@ -30,6 +30,8 @@ export type ShortLink = {
   iosUrl: string | null;
   androidUrl: string | null;
   fallbackUrl: string | null;
+  iosStoreUrl: string | null;
+  androidStoreUrl: string | null;
   status: 'active' | 'paused';
   expiresAt: string | null;
   clicks: number;

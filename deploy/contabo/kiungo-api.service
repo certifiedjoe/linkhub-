@@ -6,9 +6,9 @@ After=network.target
 Type=simple
 User=kiungo
 Group=kiungo
-WorkingDirectory=/opt/kiungo/kiungo-api
+WorkingDirectory=/opt/kiungo/app/kiungo-api
 EnvironmentFile=/etc/kiungo/kiungo-api.env
-ExecStart=/usr/bin/node /opt/kiungo/kiungo-api/index.js
+ExecStart=/usr/bin/node /opt/kiungo/app/kiungo-api/index.js
 Restart=always
 RestartSec=5
 KillSignal=SIGINT
@@ -17,7 +17,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/opt/kiungo
+ReadWritePaths=/opt/kiungo/app
 
 [Install]
 WantedBy=multi-user.target

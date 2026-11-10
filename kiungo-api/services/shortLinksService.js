@@ -1,7 +1,7 @@
 // services/shortLinksService.js
 const { randomBytes } = require('node:crypto');
 const { supabase } = require('../db');
-const { sanitizeShortLinkInput } = require('../utils/shortLinks');
+const { sanitizeShortLinkInput, selectWebDestination } = require('../utils/shortLinks');
 
 const FIELDS = 'id, owner, code, title, destination_url, mobile_url, desktop_url, fallback_url, status, expires_at, clicks, created_at, updated_at';
 
@@ -175,19 +175,12 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
   if (!data || data.status !== 'active') return null;
   if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null;
 
-  const agent = String(userAgent).slice(0, 500);
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(agent);
-  const isKnownAgent = Boolean(agent.trim());
-  const destination = isKnownAgent
-    ? (isMobile ? data.mobile_url : data.desktop_url) || data.destination_url
-    : data.fallback_url || data.destination_url;
+  const { destination, device } = selectWebDestination(data, userAgent);
 
   let safeReferrer = null;
   if (referrer) {
     try { safeReferrer = new URL(String(referrer)).origin.slice(0, 200); } catch { safeReferrer = null; }
   }
-  const device = isMobile ? 'mobile' : isKnownAgent ? 'desktop' : 'unknown';
-
   // Analytics must never hold up a redirect. The database trigger increments
   // the aggregate click counter atomically when this event insert succeeds.
   const { error: eventError } = await supabase

@@ -66,23 +66,6 @@ router.get('/r/:code', viewClickLimiter, async (req, res, next) => {
     if (!result) return res.status(404).send('This Kiungo link is unavailable.');
 
     res.set('Cache-Control', 'no-store');
-    if (result.deepLink) {
-      // HTTPS Universal/App Links must be top-level navigations so the OS can
-      // verify the associated domain and hand the URL to the installed app.
-      if (result.universalLink) return res.redirect(302, result.deepLink);
-
-      const deepLink = scriptJson(result.deepLink);
-      const fallback = scriptJson(result.fallback);
-      const storeFallback = scriptJson(result.storeFallback || result.fallback);
-      const fallbackHref = escapeHtml(result.storeFallback || result.fallback);
-      res.type('html').send(`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Opening your app · Kiungo</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111827;color:#f9fafb;font:16px system-ui,sans-serif}.card{max-width:380px;padding:32px;text-align:center}.dot{width:10px;height:10px;margin:0 auto 18px;border-radius:50%;background:#f97316;box-shadow:0 0 0 8px #f9731625}a{color:#fb923c}</style></head>
-<body><main class="card"><div class="dot"></div><h1>Opening your app…</h1><p>If the app does not open, continue below.</p><p><a href="${fallbackHref}">Continue</a></p></main>
-<script>(function(){var deepLink=${deepLink};var fallback=${fallback};var storeFallback=${storeFallback};var leftPage=false;document.addEventListener('visibilitychange',function(){if(document.hidden)leftPage=true;});window.location.href=deepLink;window.setTimeout(function(){if(!leftPage&&!document.hidden)window.location.replace(storeFallback||fallback);},1800);})();</script></body></html>`);
-      return;
-    }
-
     res.redirect(302, result.destination);
   } catch (error) {
     next(error);

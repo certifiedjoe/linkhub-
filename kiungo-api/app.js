@@ -11,7 +11,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(securityMiddleware());
-app.use(express.json({ limit: '12mb' }));
+app.use(express.json({ limit: '6mb' }));
 app.use(generalLimiter);
 app.use(attachUser());
 app.use('/api', routes);

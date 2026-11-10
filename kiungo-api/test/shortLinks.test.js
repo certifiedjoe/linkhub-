@@ -25,7 +25,7 @@ test('mobile, desktop and fallback destinations accept only HTTP or HTTPS', () =
   });
   assert.equal(input.mobile_url, 'https://m.example.com/page');
   assert.equal(input.desktop_url, 'https://www.example.com/page');
-  assert.equal(input.fallback_url, 'https://fallback.example.com');
+  assert.equal(input.fallback_url, 'https://fallback.example.com/');
   assert.throws(() => sanitizeShortLinkInput({ destinationUrl: 'https://www.example.com', mobileUrl: 'javascript:alert(1)' }), { status: 400 });
 });
 

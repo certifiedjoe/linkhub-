@@ -9,11 +9,9 @@ export function ShortLinksDashboard() {
   const [destinationUrl, setDestinationUrl] = useState('');
   const [title, setTitle] = useState('');
   const [code, setCode] = useState('');
-  const [iosUrl, setIosUrl] = useState('');
-  const [androidUrl, setAndroidUrl] = useState('');
+  const [mobileUrl, setMobileUrl] = useState('');
+  const [desktopUrl, setDesktopUrl] = useState('');
   const [fallbackUrl, setFallbackUrl] = useState('');
-  const [iosStoreUrl, setIosStoreUrl] = useState('');
-  const [androidStoreUrl, setAndroidStoreUrl] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [advanced, setAdvanced] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -42,11 +40,10 @@ export function ShortLinksDashboard() {
       destinationUrl,
       ...(title.trim() ? { title: title.trim() } : {}),
       ...(code.trim() ? { code: code.trim() } : {}),
-      ...(iosUrl.trim() ? { iosUrl: iosUrl.trim() } : {}),
-      ...(androidUrl.trim() ? { androidUrl: androidUrl.trim() } : {}),
+      ...(mobileUrl.trim() ? { mobileUrl: mobileUrl.trim() } : {}),
+      ...(desktopUrl.trim() ? { desktopUrl: desktopUrl.trim() } : {}),
       ...(fallbackUrl.trim() ? { fallbackUrl: fallbackUrl.trim() } : {}),
-      ...(iosStoreUrl.trim() ? { iosStoreUrl: iosStoreUrl.trim() } : {}),
-      ...(androidStoreUrl.trim() ? { androidStoreUrl: androidStoreUrl.trim() } : {}),
+
       ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
     };
     try {
@@ -54,11 +51,9 @@ export function ShortLinksDashboard() {
       setDestinationUrl('');
       setTitle('');
       setCode('');
-      setIosUrl('');
-      setAndroidUrl('');
+      setMobileUrl('');
+      setDesktopUrl('');
       setFallbackUrl('');
-      setIosStoreUrl('');
-      setAndroidStoreUrl('');
       setExpiresAt('');
       setAdvanced(false);
       setNotice('Your short link is ready.');
@@ -158,12 +153,10 @@ export function ShortLinksDashboard() {
           </button>
           {advanced ? (
             <div className="space-y-3 rounded-xl border bg-raised/50 p-4">
-              <p className="text-xs text-muted">Optional app destinations. Use an app URL scheme or an HTTPS universal link; keep the web destination as the fallback.</p>
-              <label className="block space-y-1"><span className="text-xs font-medium">iOS app link</span><input value={iosUrl} onChange={e => setIosUrl(e.target.value)} placeholder="myapp://open/page" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
-              <label className="block space-y-1"><span className="text-xs font-medium">Android app link</span><input value={androidUrl} onChange={e => setAndroidUrl(e.target.value)} placeholder="myapp://open/page" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
-              <label className="block space-y-1"><span className="text-xs font-medium">Web fallback</span><input type="url" value={fallbackUrl} onChange={e => setFallbackUrl(e.target.value)} placeholder="https://example.com" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
-              <label className="block space-y-1"><span className="text-xs font-medium">iOS App Store URL · optional</span><input type="url" value={iosStoreUrl} onChange={e => setIosStoreUrl(e.target.value)} placeholder="https://apps.apple.com/app/id…" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
-              <label className="block space-y-1"><span className="text-xs font-medium">Google Play Store URL · optional</span><input type="url" value={androidStoreUrl} onChange={e => setAndroidStoreUrl(e.target.value)} placeholder="https://play.google.com/store/apps/details?id=…" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
+              <p className="text-xs text-muted">Send mobile and desktop visitors to different web pages. The main destination is used whenever a device-specific URL is not set. The fallback is used when the visitor's device cannot be identified.</p>
+              <label className="block space-y-1"><span className="text-xs font-medium">Mobile website destination · optional</span><input type="url" value={mobileUrl} onChange={e => setMobileUrl(e.target.value)} placeholder="https://m.example.com/product" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
+              <label className="block space-y-1"><span className="text-xs font-medium">Desktop website destination · optional</span><input type="url" value={desktopUrl} onChange={e => setDesktopUrl(e.target.value)} placeholder="https://www.example.com/product" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
+              <label className="block space-y-1"><span className="text-xs font-medium">Unknown-device fallback · optional</span><input type="url" value={fallbackUrl} onChange={e => setFallbackUrl(e.target.value)} placeholder="https://www.example.com" className="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm" /></label>
             </div>
           ) : null}
           {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}

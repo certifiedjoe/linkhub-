@@ -187,12 +187,12 @@ export function Builder({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 sm:py-10">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="builder-shell mx-auto max-w-6xl px-4 py-6 sm:px-5 sm:py-10">
+      <div className="builder-toolbar flex flex-wrap items-center gap-3 rounded-2xl border bg-raised/90 p-3 shadow-soft backdrop-blur sm:p-4">
         <button onClick={onBack} className="btn-quiet -ml-3" data-testid="button-back">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <h1 className="font-display text-xl font-semibold">{editing ? 'Edit your page' : 'Build your page'}</h1>
+        <div className="min-w-0"><h1 className="font-display text-xl font-semibold">{editing ? 'Make it yours' : 'Create your Kiungo page'}</h1><p className="mt-0.5 text-xs text-muted">Your page, your style, one simple link.</p></div>
         <div className="ml-auto flex items-center gap-2">
           {editing ? (
             <button onClick={removePage} className="btn-quiet" data-testid="button-delete-page">
@@ -217,10 +217,10 @@ export function Builder({
         </div>
       ) : null}
 
-      <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-6">
+      <div className="builder-layout mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:gap-8">
+        <div className="min-w-0 space-y-5 sm:space-y-6">
           {/* Identity */}
-          <section className="card p-5 sm:p-6">
+          <section className="builder-section card p-5 sm:p-6">
             <h2 className="text-lg font-semibold">Your identity</h2>
             <p className="mt-1 text-sm text-muted">This is what visitors see at the top of your page.</p>
 
@@ -488,8 +488,8 @@ export function Builder({
         </div>
 
         {/* Live preview */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <p className="mb-3 text-sm font-medium text-muted">Live preview</p>
+        <aside className="builder-preview lg:sticky lg:top-6 lg:self-start">
+          <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold">Live preview</p><span className="rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent">Updates as you edit</span></div>
           <PhoneFrame>
             <ProfileStage profile={draft} scale headingLevel="p" />
           </PhoneFrame>

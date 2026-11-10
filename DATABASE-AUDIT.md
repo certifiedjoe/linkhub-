@@ -1,125 +1,89 @@
-# Database and Backend Audit
+# Linkhub Database and Backend Audit
 
-Branch: `rebuild/architecture-foundation`
-Status: inspection only; no production database changes.
+Updated: 2026-11-10  
+Project: `tjazbkkisjxcdyjmhzat` (PostgreSQL 17, EU West)  
+Application branch: `rebuild/architecture-foundation`
 
-## Confirmed database structure
+## Confirmed core schema
 
-- `profiles.id` is bigint; `profiles.owner` references `auth.users.id`.
-- `links.id` and `links.profile_id` are bigint; `links.profile_id` references `profiles.id`.
-- `link_clicks.id` is UUID; `link_clicks.link_id` and `link_clicks.profile_id` are UUID. No foreign keys were reported for either analytics table.
-- `page_views.id` and `page_views.profile_id` are UUID. No foreign key was reported for `page_views.profile_id`.
-- RLS is enabled on all four tables.
-- Public SELECT policies exist for profiles and links. Profile write policies check `owner = auth.uid()`. Link writes check ownership through the related profile.
-- Analytics INSERT policies allow all roles in `public`; analytics SELECT policies compare `auth.uid()` directly with the analytics `profile_id`.
-- The supplied analytics tables were empty at the time of the count query: zero `page_views` rows and zero `link_clicks` rows.
+- `profiles.id` is BIGINT identity; `profiles.owner` is the Supabase Auth UUID.
+- `links.id` and `links.profile_id` are BIGINT; links belong to profiles.
+- `page_views.id` and `link_clicks.id` are UUID event IDs.
+- Analytics `profile_id` remains the Auth UUID used by owner-scoped RLS.
+- The legacy `link_clicks.link_id` UUID column is retained for compatibility and is nullable. New events use `link_record_id` BIGINT.
+- New page-view events use `profile_record_id` BIGINT to identify the specific profile when an owner has multiple pages.
+- RLS is enabled on the relevant tables.
 
-## Confirmed triggers and indexes
+## Applied migrations
 
-Two AFTER INSERT triggers are installed:
+All four migrations below were applied to the connected Linkhub Supabase project and appear in its migration history:
 
-- `link_clicks.on_link_click_increment` calls `public.increment_link_clicks()`.
-- `page_views.on_page_view_increment` calls `public.increment_profile_views()`.
+1. `202611100002_atomic_counters_and_safe_link_updates.sql`
+   - Atomic profile and link counter functions.
+   - Transactional, ID-preserving link reconciliation.
+   - Execution limited to the backend `service_role`.
 
-The trigger functions are SECURITY DEFINER and set `search_path` to `public`. Their current bodies attempt to update `links.total_clicks` using `links.id = NEW.link_id`, and `profiles.total_views` using `profiles.id = NEW.profile_id`.
+2. `202611100003_repair_analytics_event_tracking.sql`
+   - Adds explicit BIGINT references for profile and link analytics events.
+   - Adds foreign keys and event lookup indexes.
+   - Repairs the page-view and link-click trigger functions.
+   - Removes public analytics INSERT policies; writes are handled by the backend.
+   - Limits analytics SELECT access to authenticated owners.
 
-This conflicts with the supplied schema in two independent ways:
+3. `202611100004_fix_auth_signup_profile_trigger.sql`
+   - Fixes new-user profile creation.
+   - Uses the BIGINT identity for `profiles.id` and stores `auth.users.id` in `profiles.owner`.
+   - Generates a unique username and a bounded display name.
+   - Removes direct RPC execution from trigger-only functions.
 
-1. The supplied `links` and `profiles` column exports contain `clicks` and `views`, not `total_clicks` and `total_views`.
-2. `links.id` and `profiles.id` are bigint, while `NEW.link_id` and `NEW.profile_id` are UUID.
+4. `202611100005_harden_legacy_counter_functions.sql`
+   - Pins trigger function search paths.
+   - Revokes access to unused legacy counter RPC overloads.
 
-Unless the live deployed schema differs from the supplied export, these trigger functions cannot correctly update the intended rows and may cause the analytics INSERT transaction to fail when invoked.
+## Database verification
 
-Two additional overloaded functions exist:
-- `increment_link_clicks(p_link_id integer)` increments `links.clicks`.
-- `increment_profile_views(p_username text)` increments `profiles.views`.
+- The migration history confirms all four migrations are applied.
+- Function permissions were inspected: trigger-only functions and retired legacy counter RPCs are not executable by `anon` or `authenticated`.
+- A rollback-only test inserted a temporary Auth user and verified that the signup trigger created a BIGINT profile with the correct owner UUID.
+- The same rollback-only test inserted a page-view event and a link-click event and verified that the corresponding aggregate counters reached 1.
+- The test transaction was rolled back; no test rows were retained.
+- The analytics event tables were empty before the event-reference migration.
+- No separate database backup was created or verified through the available Supabase connection.
 
-These parameter-based functions target the supplied counter column names, whereas the trigger overloads target the alternate `total_clicks` / `total_views` names. The overloads create ambiguous counter ownership and must be rationalized after checking all RPC callers.
+## Application changes
 
-Existing indexes include:
-- `profiles(owner)`, `profiles(views DESC)`, and the unique username index.
-- `links(profile_id)`.
-- `link_clicks(created_at)`, `link_clicks(link_id)`, `link_clicks(profile_id)`, and `link_clicks(profile_id, created_at)`.
-- `page_views(created_at)`, `page_views(profile_id)`, and `page_views(profile_id, created_at)`.
+- Express tracking endpoints now insert analytics events; database triggers update aggregate counters in the same transaction.
+- Existing link IDs and click counts are preserved during link edits.
+- Client-supplied click counts are ignored.
+- BIGINT link IDs are validated and preserved as decimal strings.
+- Dashboard/showcase hydration batches link queries.
+- API authentication verifies Supabase JWTs; profile mutations require the authenticated owner.
+- Tracking and mutation endpoints are rate-limited.
+- Production API origin is explicitly configured rather than silently falling back to localhost.
+- Browser-side Supabase diagnostics and tracked dependency artifacts were removed.
+- Dependency lockfiles were updated with non-forced compatible fixes; CI audits passed.
 
-Preserve useful existing indexes; do not add duplicates without query-plan evidence.
+## Deployment architecture
 
-## Confirmed application/database incompatibility
+- Frontend: Next.js static export in `linkhub/out`.
+- API: Express on Node.js 22, intended to run as a systemd service bound behind Nginx.
+- Database and Auth: Supabase.
+- Contabo instructions: `DEPLOY-CONTABO.md`.
+- Nginx and systemd examples: `deploy/contabo/`.
 
-The Next.js page-view handler at `linkhub/app/api/links/[id]/click/clicks.ts` (and the similar file under `linkhub/app/api/profiles/[username]/view/views`) selects `profiles.id` and inserts it as `page_views.profile_id`. The former is bigint and the latter is UUID. This insert is incompatible with the declared schema and is expected to fail unless the deployed schema differs from the supplied export.
+## Remaining production gates
 
-The Next.js route files are not named `route.ts`, which is the required App Router route-handler filename. The handler under `[id]` also types its route parameter as `username`, despite the folder being `[id]`.
+- Contabo has not been accessed or deployed. The VPS OS, public IP, DNS records, actual domain, and secure server access must be confirmed.
+- The runbook currently uses `kiungo.link` as the example domain because it appears in the frontend UI; confirm that this is the registered domain before configuring DNS and TLS.
+- A separate database backup/restore point must be verified before production traffic.
+- Supabase security advisors still report some unrelated configuration warnings, including leaked-password protection being disabled and the `citext` extension in `public`. The trigger-only SECURITY DEFINER exposure warnings were addressed.
+- Profile metadata update and link reconciliation are separate database operations; link reconciliation itself is transactional.
+- Production smoke tests (signup, login, profile create/edit, public profile view, click tracking, and owner isolation) must be run after VPS deployment.
 
-## Additional backend risks
+## CI
 
-- The Express backend uses a Supabase service-role client, which bypasses RLS. Authorization therefore depends on the API's own checks and validation.
-- `incrementView` and `incrementClick` read a counter and write the incremented value in separate operations. Concurrent requests can lose increments. Prefer a database-side atomic increment/RPC or event-based aggregation.
-- `writeLinks` deletes every link for a profile and recreates the submitted list on update. This changes link IDs and can discard per-link click counters and break references. Replace with an ID-aware transactional upsert/reconciliation strategy.
-- The Express API currently increments aggregate counters but does not insert rows into `page_views` or `link_clicks` in the inspected service code.
-- Rate limiting exists in Express, but the public analytics insert policies can be called directly through Supabase unless access is narrowed or writes are moved behind a controlled ingestion path.
-- `next.config.mjs` uses `output: 'export'`, which conflicts with the intended dynamic Next.js route handlers and server-side redirect/runtime features.
+Latest code CI run: https://github.com/certifiedjoe/linkhub-/actions/runs/42806991360
 
-## Policy interpretation requiring data confirmation
-
-The policy `auth.uid() = profile_id` is not automatically invalid merely because `profiles.id` is bigint: the analytics UUID column could have been intended to store the owner's auth UUID. However, the inspected Next.js page-view handler writes the profile bigint into that UUID column. Confirm all write paths before changing the policy or column types.
-
-## Safe next steps
-
-1. Back up the database and export current schema, policies, triggers, functions, indexes, and row counts.
-2. Inspect all production write paths and RPC callers, including both overloaded counter functions.
-3. Decide whether analytics events should reference `profiles.id` (bigint) or `auth.users.id` (UUID); use explicit, consistently named columns and real foreign keys where appropriate.
-4. Confirm the deployed table columns match the supplied exports before drafting a migration. The trigger functions suggest possible schema drift.
-5. Implement additive, reversible migrations only after the data mapping is confirmed. Do not execute a UUID-to-bigint conversion solely on the basis of the earlier zero-row count.
-6. Repair the Next.js route-handler layout or consolidate analytics ingestion into the canonical Express API.
-7. Make counter updates atomic and link updates preserve stable IDs and historical analytics.
-8. Restrict direct analytics writes and add server-side validation, abuse controls, and privacy-aware retention.
-
-No schema, data, or production policies were modified during this audit.
-
-## Implementation changes committed on the rebuild branch
-
-The following application changes are now present on `rebuild/architecture-foundation`:
-
-- The Express profile service now calls database-side atomic increment functions for profile views and link clicks. This removes the previous read-then-write race that could lose concurrent increments.
-- Link edits now call `linkhub_reconcile_links`. Existing link IDs are updated in place, click counts are not accepted from the browser, newly added links receive database-generated IDs, and omitted links are removed. The SQL function performs the reconciliation transactionally and rejects IDs that do not belong to the profile.
-- Link ID validation preserves decimal IDs as strings to avoid JavaScript number precision loss and rejects malformed or duplicate IDs.
-- Dashboard and showcase hydration now fetches links for all returned profiles in one query instead of issuing one links query per profile.
-- Browser Supabase startup diagnostics were removed.
-- Removed the 1,780 tracked files under `kiungo-api/node_modules`; dependencies are restored reproducibly with `npm ci`. Added a root `.gitignore` for dependencies, build output, local secrets, logs, and generated audit reports.
-- Link input validation now rejects malformed link objects, partially completed rows, non-canonical/duplicate/zero/out-of-range BIGINT IDs, and invalid positions; it preserves BIGINT values without JavaScript number rounding.
-- Profile update requests now use the strict rate limiter in addition to requiring an authenticated owner.
-- The Node built-in test suite covers BIGINT edge cases, empty builder rows, malformed rows, positions, client click-count tampering, and unsafe URL protocols.
-
-A new migration, `supabase/migrations/202611100002_atomic_counters_and_safe_link_updates.sql`, defines the required RPC functions and grants execution only to `service_role`. It has been committed but has NOT been executed against Supabase.
-
-## Remaining blockers and unverified work
-
-- These changes depend on applying migration `202611100002` before deploying the updated Express API. Until then, its RPC calls will fail because the functions will not exist.
-- The initial UUID-to-BIGINT analytics conversion draft was withdrawn from this branch because the live policy dependencies and intended UUID semantics are not yet confirmed. No analytics type conversion is proposed until the data model is verified. Analytics event columns still need a deliberate UUID-versus-BIGINT decision.
-- The current Express tracking endpoints update aggregate counters only. They do not yet create `page_views` or `link_clicks` event rows. Event-level analytics, attribution, and reporting therefore remain incomplete.
-- The profile record update and link reconciliation are separate API/database transactions. Link reconciliation itself is atomic, but the entire profile-plus-links edit is not one transaction.
-- GitHub Actions now passes both backend tests (`npm ci`, `npm test`) and the Next.js production build (`npm ci`, `npm run build`) on Node.js 22. The build exposed and led to fixes for the Next.js 16 webpack/Turbopack CLI mismatch and the TypeScript 7 removal of `baseUrl`.
-- Full Next.js routing/deployment architecture, remaining security/RLS hardening, and end-to-end performance profiling remain to be completed.
-- No production database changes, deployment, or merge to `main` have been made.
-
-
-## Dependency security remediation
-
-The initial dependency audit reported 9 findings (3 moderate, 4 high, 2 critical). Both dependency trees have now been updated using non-forced, semver-compatible npm audit fixes. A subsequent `npm audit --audit-level=moderate` passed with **zero known vulnerabilities** in both `kiungo-api` and `linkhub`.
-
-The updated lockfiles now resolve patched releases including `body-parser` 1.20.9 / 2.4.0, `proxy-addr` 2.0.8, `qs` 6.17.1, Next.js 16.4.6, and Sharp 0.35.5. The API tests and frontend production build both passed in CI using the updated dependency trees. No `--force` upgrades were used.
-
-
-## Live rollout update (2026-11-10)
-
-The following changes have since been applied to the connected Linkhub Supabase project (project ref `tjazbkkisjxcdyjmhzat`):
-
-- Migration `atomic_counters_and_safe_link_updates` was applied and verified. It adds service-role-only atomic counter and link-reconciliation RPCs.
-- Migration `repair_analytics_event_tracking` was applied and verified. It adds BIGINT record-reference columns while preserving UUID auth ownership fields, repairs the existing analytics triggers, adds foreign keys/indexes, removes public analytics INSERT policies, and restricts analytics SELECT policies to authenticated owners.
-- A rollback-only database test inserted one temporary profile view and one temporary link click, verified both aggregate counters became 1, and rolled the test transaction back.
-- The Express tracking service now records page-view and link-click events; database triggers update the aggregate counters in the same transaction as each event insert.
-- A Contabo deployment runbook, systemd service unit, and Nginx example have been added under `DEPLOY-CONTABO.md` and `deploy/contabo/`.
-
-The live analytics tables had zero rows before the migration. No existing analytics events were converted or deleted. A separate database backup was not created or verified through the available Supabase connection.
-
-The latest CI run for the earlier foundation commit passed. CI must be rechecked for the new analytics and deployment commits before production rollout. The VPS itself has not been accessed or deployed; DNS, exact domain, server OS, and SSH deployment remain to be confirmed.
+Both jobs passed:
+- API clean install, dependency audit, and test suite.
+- Frontend clean install, dependency audit, and production build.

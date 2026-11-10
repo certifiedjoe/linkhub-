@@ -10,9 +10,9 @@
 - Delivery: implement the complete product vision in independently testable phases.
 
 ## Product experience
-Primary navigation: Overview, Links, QR codes, Landing pages, Campaigns, Analytics, Developer tools, Workspace and settings.
+Primary navigation: Overview, Short links, Smart links, QR codes, Analytics, Landing pages, Developer tools, Workspace and settings.
 
-Global create actions: Short link, QR code, Landing page, Campaign. A user must be able to shorten their first link without understanding campaigns or attribution.
+Global create actions: Short link, Smart link, QR code, Landing page. A user must be able to shorten their first link without understanding attribution or advanced routing.
 
 A campaign is an optional organising container connecting links, QR codes, landing pages, UTM parameters, and analytics. Every asset can also be created independently.
 
@@ -34,12 +34,13 @@ Use UUID primary keys and UTC timestamps. Suggested entities:
 - workspaces: personal or shared ownership boundary.
 - workspace_members: roles and invitations (later phase).
 - campaigns: name, slug, status, UTM defaults, workspace ownership.
-- links: destination, unique short code, optional custom domain, title, status, expiry, password hash, redirect rules, campaign association, creator.
+- short_links: destination, unique short code, optional custom domain, title, status, expiry, password hash, redirect rules, creator.
+- smart_link_rules: platform/device-specific destinations and safe web fallback rules associated with a short link.
 - domains: verified custom domains and ownership/verification state.
 - qr_codes: link or page target, style configuration, generated asset reference.
 - pages: slug, title, description, theme, published state, SEO/social metadata, campaign association.
 - page_sections / page_blocks: ordered, validated page-builder content and settings.
-- analytics_events: event type, asset references, timestamp, coarse geography/device/referrer/campaign dimensions, privacy-safe deduplication key.
+- analytics_events: event type, asset references, timestamp, coarse geography/device/referrer/UTM dimensions, privacy-safe deduplication key.
 - api_keys and webhook_endpoints: hashed credentials, scopes, delivery status and rotation metadata (later phase).
 
 All user-owned records must be scoped through workspace ownership and enforced server-side. Public assets expose only published/active data.
@@ -57,8 +58,8 @@ Generate static and dynamic QR codes. Dynamic QR codes point to a Linkhub-manage
 ### Landing pages
 Provide curated templates and a visual editor using a constrained block schema: profile/header, text, image, video embed, button/link, social icons, divider, and call-to-action. Include draft/preview/publish states, undo/redo, autosave, mobile preview, accessible controls, SEO/social metadata, and responsive published pages. Validate and sanitize all saved block data.
 
-### Campaigns and smart links
-Support UTM builder, campaign grouping, scheduling, A/B experiments, device/platform routing, app deep links and web fallback destinations. Introduce advanced attribution only after the core click/event pipeline is trustworthy.
+### Smart links
+Support device/platform routing, app deep links, store links and web fallback destinations. Introduce advanced routing only after the core short-link redirect and event pipeline is trustworthy.
 
 ### Developer and administration
 Versioned API, scoped API keys, webhooks, docs, abuse reports, domain verification, audit logs, platform health and admin moderation. Team workspaces and integrations are later phases.
@@ -96,9 +97,9 @@ Exit: QR destinations can be updated without changing the printed QR image.
 Templates, validated block model, visual editor, preview, autosave, publishing, public URLs, and SEO/social metadata.
 Exit: a non-technical user can publish a responsive page without code.
 
-### Phase 5 — Campaigns and growth tools
-UTM tools, campaign grouping, scheduling, bulk operations, A/B testing and smart routing.
-Exit: one campaign report can connect its links, QR scans, and landing-page activity.
+### Phase 5 — Smart links and growth tools
+Device/platform routing, app deep links, app-store fallbacks, safe web fallbacks, bulk operations and A/B routing tests.
+Exit: one smart link reliably opens the intended app or a suitable fallback and records the redirect event.
 
 ### Phase 6 — Developer ecosystem and scale
 Public API, API keys, webhooks, integrations, team workspaces, admin operations, observability and load testing.

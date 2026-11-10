@@ -19,7 +19,7 @@ function securityMiddleware() {
 
         const allowed = config.corsOrigin.split(',').map((o) => o.trim());
 
-        if (allowed.includes(origin) || allowed.includes('*')) {
+        if (allowed.includes(origin) || (!config.isProd && allowed.includes('*'))) {
           return callback(null, true);
         }
 

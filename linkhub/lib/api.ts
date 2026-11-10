@@ -1,7 +1,7 @@
 import { accessToken } from '@/lib/supabase';
 
 export type LinkItem = {
-  id?: number;
+  id?: number | string;
   label: string;
   url: string;
   icon: string;

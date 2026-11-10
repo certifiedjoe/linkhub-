@@ -14,7 +14,7 @@ Primary navigation: Overview, Short links, Smart links, QR codes, Analytics, Lan
 
 Global create actions: Short link, Smart link, QR code, Landing page. A user must be able to shorten their first link without understanding attribution or advanced routing.
 
-A campaign is an optional organising container connecting links, QR codes, landing pages, UTM parameters, and analytics. Every asset can also be created independently.
+Each asset can be created and managed independently, with optional UTM parameters for traffic attribution.
 
 ## Target architecture
 Use a modular monolith initially, not premature microservices.
@@ -33,12 +33,11 @@ Use UUID primary keys and UTC timestamps. Suggested entities:
 - users: Supabase identity mapping and account metadata.
 - workspaces: personal or shared ownership boundary.
 - workspace_members: roles and invitations (later phase).
-- campaigns: name, slug, status, UTM defaults, workspace ownership.
 - short_links: destination, unique short code, optional custom domain, title, status, expiry, password hash, redirect rules, creator.
 - smart_link_rules: platform/device-specific destinations and safe web fallback rules associated with a short link.
 - domains: verified custom domains and ownership/verification state.
 - qr_codes: link or page target, style configuration, generated asset reference.
-- pages: slug, title, description, theme, published state, SEO/social metadata, campaign association.
+- pages: slug, title, description, theme, published state, SEO/social metadata.
 - page_sections / page_blocks: ordered, validated page-builder content and settings.
 - analytics_events: event type, asset references, timestamp, coarse geography/device/referrer/UTM dimensions, privacy-safe deduplication key.
 - api_keys and webhook_endpoints: hashed credentials, scopes, delivery status and rotation metadata (later phase).
@@ -50,7 +49,7 @@ All user-owned records must be scoped through workspace ownership and enforced s
 Shorten long URLs, reserve system routes, generate collision-resistant codes, support custom aliases, edit destinations, pause/expire links, optional passwords, tags/folders, bulk import/export, and safe HTTP/HTTPS validation. Redirects must reject unsafe schemes and avoid open-redirect surprises.
 
 ### Analytics
-Track link clicks, unique visitors using privacy-conscious deduplication, page views, QR scans, referrers, UTM values, device/browser families, and coarse country/region. Provide date filters, comparisons, campaign reports, CSV export, bot filtering, retention controls, and clear definitions for every metric. Do not promise exact person-level attribution.
+Track link clicks, unique visitors using privacy-conscious deduplication, page views, QR scans, referrers, UTM values, device/browser families, and coarse country/region. Provide date filters, comparisons, CSV export, bot filtering, retention controls, and clear definitions for every metric. Do not promise exact person-level attribution.
 
 ### QR codes
 Generate static and dynamic QR codes. Dynamic QR codes point to a Linkhub-managed destination so the target can change without reprinting. Offer colour/logo/shape options, contrast checks, SVG/PNG downloads, and scan analytics.

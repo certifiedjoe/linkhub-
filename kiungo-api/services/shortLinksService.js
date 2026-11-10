@@ -185,7 +185,10 @@ async function resolveShortLink(code, { referrer = '', userAgent = '' } = {}) {
       : null;
   const destination = data.fallback_url || data.destination_url;
 
-  const safeReferrer = String(referrer || '').slice(0, 500) || null;
+  let safeReferrer = null;
+  if (referrer) {
+    try { safeReferrer = new URL(String(referrer)).origin.slice(0, 200); } catch { safeReferrer = null; }
+  }
   const device = isIOS ? 'ios' : isAndroid ? 'android' : /Mobile/i.test(agent) ? 'mobile' : 'desktop';
 
   // Analytics must never hold up a redirect. The database trigger increments

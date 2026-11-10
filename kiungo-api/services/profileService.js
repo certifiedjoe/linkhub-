@@ -236,33 +236,65 @@ async function incrementView(username) {
     throw err;
   }
 
-  const { data, error } = await supabase.rpc('linkhub_increment_profile_views', {
-    p_profile_id: String(profile.id),
+  // Event insertion and the database trigger update the aggregate in one transaction.
+  const { error: eventError } = await supabase.from('page_views').insert({
+    profile_id: profile.owner,
+    profile_record_id: String(profile.id),
   });
+  if (eventError) throw eventError;
 
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('views')
+    .eq('id', profile.id)
+    .single();
   if (error) throw error;
-  return { views: data };
+  return { views: data.views };
 }
 
 async function incrementClick(linkId) {
   const id = String(linkId || '');
-  if (!/^\d+$/.test(id)) {
+  if (!/^\\d+$/.test(id)) {
     const err = new Error('Invalid link id');
     err.status = 400;
     throw err;
   }
 
-  const { data, error } = await supabase.rpc('linkhub_increment_link_clicks', {
-    p_link_id: id,
-  });
+  const { data: link, error: linkError } = await supabase
+    .from('links')
+    .select('id, profile_id')
+    .eq('id', id)
+    .maybeSingle();
 
-  if (error && error.code === 'P0002') {
+  if (linkError) throw linkError;
+  if (!link) {
     const notFound = new Error('Link not found');
     notFound.status = 404;
     throw notFound;
   }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('owner')
+    .eq('id', link.profile_id)
+    .single();
+  if (profileError) throw profileError;
+
+  // Keep the event tied to the BIGINT link row; profile_id remains the auth UUID
+  // used by the existing analytics ownership policy.
+  const { error: eventError } = await supabase.from('link_clicks').insert({
+    profile_id: profile.owner,
+    link_record_id: id,
+  });
+  if (eventError) throw eventError;
+
+  const { data, error } = await supabase
+    .from('links')
+    .select('clicks')
+    .eq('id', id)
+    .single();
   if (error) throw error;
-  return { ok: true, clicks: data };
+  return { ok: true, clicks: data.clicks };
 }
 
 async function writeLinks(profileId, rawLinks) {

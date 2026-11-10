@@ -10,6 +10,11 @@ if (missing.length > 0 && process.env.NODE_ENV === 'production') {
   process.exit(1);
 }
 
+if (process.env.NODE_ENV === 'production' && (process.env.CORS_ORIGIN || '').split(',').map((value) => value.trim()).includes('*')) {
+  console.error('❌ CORS_ORIGIN cannot contain * in production.');
+  process.exit(1);
+}
+
 const config = {
   port: Number(process.env.PORT) || 8000,
   nodeEnv: process.env.NODE_ENV || 'development',

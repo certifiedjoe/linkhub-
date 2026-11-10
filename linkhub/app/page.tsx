@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, Eye, ImagePlus, LayoutGrid, Moon, MousePointerClick, Pencil, Plus, Sun, Mail, MessageCircle } from 'lucide-react';
+import { ArrowRight, BarChart3, Eye, ImagePlus, LayoutGrid, Moon, MousePointerClick, Pencil, Plus, Sun, Mail, MessageCircle, Link2 } from 'lucide-react';
 import { api, type Profile, type ProfileDraft } from '@/lib/api';
 import { Logo, Wordmark } from '@/components/logo';
 import { Builder } from '@/components/builder';
+import { ShortLinksDashboard } from '@/components/short-links-dashboard';
 import { ProfileStage, PublicProfile, ShareBar, prettyUrl } from '@/components/profile-view';
 import { AuthGate, AuthProvider, DemoModeNotice, SignInPanel, UserMenu, useAuth, ResetPasswordPanel } from '@/components/auth';
 
@@ -13,6 +14,7 @@ type Route =
   | { view: 'build'; username?: string }
   | { view: 'edit'; username: string }
   | { view: 'dashboard' }
+  | { view: 'links' }
   | { view: 'signin' }
   | { view: 'reset-password' }
   | { view: 'profile'; username: string };
@@ -22,6 +24,7 @@ function parseHash(hash: string): Route {
   if (!clean) return { view: 'home' };
   const [head, tail] = clean.split('/');
   if (head === 'dashboard') return { view: 'dashboard' };
+  if (head === 'links') return { view: 'links' };
   if (head === 'build') return { view: 'build', username: tail };
   if (head === 'edit' && tail) return { view: 'edit', username: tail };
   if (head === 'signin' || head === 'login') return { view: 'signin' };
@@ -93,15 +96,16 @@ function Header({ go }: { go: (to: string) => void }) {
         </a>
         <nav className="ml-auto flex items-center gap-1">
           {showMine ? (
-            <button
-              onClick={() => go('/dashboard')}
-              className="btn-quiet whitespace-nowrap"
-              aria-label="My pages"
-              data-testid="link-dashboard"
-            >
-              <LayoutGrid className="h-4 w-4 sm:hidden" />
-              <span className="hidden sm:inline">My pages</span>
-            </button>
+            <>
+              <button onClick={() => go('/dashboard')} className="btn-quiet whitespace-nowrap" aria-label="My pages" data-testid="link-dashboard">
+                <LayoutGrid className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">My pages</span>
+              </button>
+              <button onClick={() => go('/links')} className="btn-quiet whitespace-nowrap" aria-label="Short links" data-testid="link-short-links">
+                <Link2 className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">Short links</span>
+              </button>
+            </>
           ) : null}
           <ThemeToggle />
           <UserMenu onSignIn={() => go('/signin')} />
@@ -404,7 +408,8 @@ function Dashboard({ go }: { go: (to: string) => void }) {
     <div className="dashboard-shell mx-auto max-w-5xl px-4 py-7 sm:px-5 sm:py-10">
       <div className="flex flex-wrap items-center gap-3">
         <div><p className="text-xs font-bold uppercase tracking-[.16em] text-accent">Your workspace</p><h1 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">My pages</h1><p className="mt-1 text-sm text-muted">Manage your pages and keep track of how they perform.</p></div>
-        <button onClick={() => go('/build')} className="btn-primary ml-auto" data-testid="button-new-page">
+        <button onClick={() => go('/links')} className="btn-quiet ml-auto" data-testid="button-short-links"><Link2 className="h-4 w-4" /> Short links</button>
+        <button onClick={() => go('/build')} className="btn-primary" data-testid="button-new-page">
           <Plus className="h-4 w-4" /> New page
         </button>
       </div>
@@ -508,6 +513,11 @@ function Shell() {
       {route.view === 'home' ? <Home go={go} /> : null}
       {route.view === 'signin' ? <SignInPanel /> : null}
       {route.view === 'reset-password' ? <ResetPasswordPanel /> : null}
+      {route.view === 'links' ? (
+        <AuthGate heading="Sign in to manage your links" blurb="Create short links, set destinations and track clicks.">
+          <ShortLinksDashboard />
+        </AuthGate>
+      ) : null}
       {route.view === 'dashboard' ? (
         <AuthGate heading="Sign in to see your pages" blurb="Your pages, views and clicks are tied to your account.">
           <Dashboard go={go} />

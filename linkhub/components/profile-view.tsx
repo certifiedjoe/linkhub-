@@ -292,9 +292,9 @@ export function PublicProfile({ username, onEdit }: { username: string; onEdit: 
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="profile-public-shell flex min-h-dvh flex-col">
       {profile.isOwner ? (
-        <div className="border-b bg-raised/90 backdrop-blur">
+        <div className="profile-owner-bar border-b bg-raised/90 backdrop-blur">
           <div className="mx-auto max-w-3xl space-y-3 px-5 py-4">
             <div className="flex flex-wrap items-center gap-3">
               <a href="#/" className="text-accent" aria-label="Kiungo home">

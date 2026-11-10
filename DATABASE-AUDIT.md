@@ -103,4 +103,8 @@ A new migration, `supabase/migrations/202611100002_atomic_counters_and_safe_link
 - No production database changes, deployment, or merge to `main` have been made.
 
 
-The frontend dependency installation reported **9 npm audit findings (3 moderate, 4 high, 2 critical)**. They have not yet been triaged or remediated; do not interpret a successful build as a clean dependency security audit.
+## Dependency security remediation
+
+The initial dependency audit reported 9 findings (3 moderate, 4 high, 2 critical). Both dependency trees have now been updated using non-forced, semver-compatible npm audit fixes. A subsequent `npm audit --audit-level=moderate` passed with **zero known vulnerabilities** in both `kiungo-api` and `linkhub`.
+
+The updated lockfiles now resolve patched releases including `body-parser` 1.20.9 / 2.4.0, `proxy-addr` 2.0.8, `qs` 6.17.1, Next.js 16.4.6, and Sharp 0.35.5. The API tests and frontend production build both passed in CI using the updated dependency trees. No `--force` upgrades were used.

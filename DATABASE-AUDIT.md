@@ -75,3 +75,26 @@ The policy `auth.uid() = profile_id` is not automatically invalid merely because
 8. Restrict direct analytics writes and add server-side validation, abuse controls, and privacy-aware retention.
 
 No schema, data, or production policies were modified during this audit.
+
+## Implementation changes committed on the rebuild branch
+
+The following application changes are now present on `rebuild/architecture-foundation`:
+
+- The Express profile service now calls database-side atomic increment functions for profile views and link clicks. This removes the previous read-then-write race that could lose concurrent increments.
+- Link edits now call `linkhub_reconcile_links`. Existing link IDs are updated in place, click counts are not accepted from the browser, newly added links receive database-generated IDs, and omitted links are removed. The SQL function performs the reconciliation transactionally and rejects IDs that do not belong to the profile.
+- Link ID validation preserves decimal IDs as strings to avoid JavaScript number precision loss and rejects malformed or duplicate IDs.
+- Dashboard and showcase hydration now fetches links for all returned profiles in one query instead of issuing one links query per profile.
+- Browser Supabase startup diagnostics were removed.
+- A Node built-in test suite was added for link ID preservation, duplicate/malformed ID rejection, client click-count tampering, and URL validation.
+
+A new migration, `supabase/migrations/202611100002_atomic_counters_and_safe_link_updates.sql`, defines the required RPC functions and grants execution only to `service_role`. It has been committed but has NOT been executed against Supabase.
+
+## Remaining blockers and unverified work
+
+- These changes depend on applying migration `202611100002` before deploying the updated Express API. Until then, its RPC calls will fail because the functions will not exist.
+- Migration `202611100001_repair_analytics_ids_and_counters.sql` remains a separate, unapproved draft. Do not run it. Analytics event columns and their intended UUID-versus-BIGINT meaning still need a data-model decision.
+- The current Express tracking endpoints update aggregate counters only. They do not yet create `page_views` or `link_clicks` event rows. Event-level analytics, attribution, and reporting therefore remain incomplete.
+- The profile record update and link reconciliation are separate API/database transactions. Link reconciliation itself is atomic, but the entire profile-plus-links edit is not one transaction.
+- The new tests have been committed but have not yet been run in a checked-out environment. No successful build, typecheck, integration test, or live Supabase test is claimed.
+- Full Next.js routing/deployment architecture, tracked dependency cleanup, security/RLS hardening, and end-to-end performance profiling remain to be completed.
+- No production database changes, deployment, or merge to `main` have been made.

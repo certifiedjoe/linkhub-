@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Copy, ExternalLink, Link2, Pause, Play, Plus, Trash2 } from 'lucide-react';
+import { Check, Copy, ExternalLink, Link2, Pause, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
 import { api, type ShortLink, type ShortLinkDraft } from '@/lib/api';
 
 export function ShortLinksDashboard() {
@@ -12,7 +12,10 @@ export function ShortLinksDashboard() {
   const [iosUrl, setIosUrl] = useState('');
   const [androidUrl, setAndroidUrl] = useState('');
   const [fallbackUrl, setFallbackUrl] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [advanced, setAdvanced] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDestination, setEditDestination] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -40,6 +43,7 @@ export function ShortLinksDashboard() {
       ...(iosUrl.trim() ? { iosUrl: iosUrl.trim() } : {}),
       ...(androidUrl.trim() ? { androidUrl: androidUrl.trim() } : {}),
       ...(fallbackUrl.trim() ? { fallbackUrl: fallbackUrl.trim() } : {}),
+      ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
     };
     try {
       await api.createShortLink(draft);
@@ -49,6 +53,7 @@ export function ShortLinksDashboard() {
       setIosUrl('');
       setAndroidUrl('');
       setFallbackUrl('');
+      setExpiresAt('');
       setAdvanced(false);
       setNotice('Your short link is ready.');
       await refresh();
@@ -69,8 +74,21 @@ export function ShortLinksDashboard() {
     }
   }
 
+  async function saveDestination(item: ShortLink) {
+    setError('');
+    try {
+      await api.updateShortLink(item.id, { destinationUrl: editDestination });
+      setEditingId(null);
+      setEditDestination('');
+      await refresh();
+      setNotice('Destination updated.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update the destination.');
+    }
+  }
+
   async function remove(item: ShortLink) {
-    if (!window.confirm(`Delete the short link /${item.code}? This cannot be undone.`)) return;
+    if (!window.confirm('Delete the short link /' + item.code + '? This cannot be undone.')) return;
     setError('');
     try {
       await api.deleteShortLink(item.id);
@@ -125,6 +143,10 @@ export function ShortLinksDashboard() {
               <input value={code} onChange={e => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32))} placeholder="my-link" maxLength={32} className="min-w-0 flex-1 bg-transparent px-3 py-3 font-mono text-sm outline-none" />
             </div>
           </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">Expiry date <span className="font-normal text-muted">· optional</span></span>
+            <input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} className="w-full rounded-xl border bg-surface px-3 py-3 text-sm outline-none focus:border-accent" />
+          </label>
           <button type="button" onClick={() => setAdvanced(v => !v)} className="text-sm font-medium text-accent hover:underline">
             {advanced ? 'Hide' : 'Add'} smart-link destinations
           </button>
@@ -163,13 +185,17 @@ export function ShortLinksDashboard() {
                     <span className={item.status === 'active' ? 'rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700' : 'rounded-full bg-line px-2 py-0.5 text-[11px] font-medium text-muted'}>{item.status}</span>
                   </div>
                   <p className="mt-1 truncate text-sm text-muted">{item.title || item.destinationUrl}</p>
-                  <p className="mt-1 truncate text-xs text-muted">{item.destinationUrl}</p>
+                  {editingId === item.id ? (
+                    <div className="mt-2 flex gap-2"><input type="url" value={editDestination} onChange={e => setEditDestination(e.target.value)} className="min-w-0 flex-1 rounded-lg border bg-surface px-2 py-2 text-xs" aria-label="New destination URL" /><button onClick={() => void saveDestination(item)} className="btn-quiet px-2 py-1 text-xs" aria-label="Save destination"><Check className="h-3.5 w-3.5" /></button><button onClick={() => setEditingId(null)} className="btn-quiet px-2 py-1 text-xs" aria-label="Cancel edit"><X className="h-3.5 w-3.5" /></button></div>
+                  ) : <p className="mt-1 truncate text-xs text-muted">{item.destinationUrl}</p>}
+                  {item.expiresAt ? <p className="mt-1 text-[11px] text-muted">Expires {new Date(item.expiresAt).toLocaleString()}</p> : null}
                   <p className="mt-2 text-xs text-muted"><span className="font-semibold tabular-nums">{item.clicks.toLocaleString()}</span> clicks</p>
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
                 <button onClick={() => void copy(item)} className="btn-quiet px-3 py-2 text-xs"><Copy className="h-3.5 w-3.5" /> Copy</button>
                 <a href={api.shortLinkUrl(item.code)} target="_blank" rel="noopener noreferrer" className="btn-quiet px-3 py-2 text-xs"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
+                <button onClick={() => { setEditingId(item.id); setEditDestination(item.destinationUrl); }} className="btn-quiet px-3 py-2 text-xs"><Pencil className="h-3.5 w-3.5" /> Edit</button>
                 <button onClick={() => void toggleStatus(item)} className="btn-quiet px-3 py-2 text-xs">{item.status === 'active' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}{item.status === 'active' ? 'Pause' : 'Activate'}</button>
                 <button onClick={() => void remove(item)} className="btn-quiet ml-auto px-3 py-2 text-xs text-red-600"><Trash2 className="h-3.5 w-3.5" /> Delete</button>
               </div>

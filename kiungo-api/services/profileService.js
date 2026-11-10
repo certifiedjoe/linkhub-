@@ -254,7 +254,7 @@ async function incrementView(username) {
 
 async function incrementClick(linkId) {
   const id = String(linkId || '');
-  if (!/^\\d+$/.test(id)) {
+  if (!/^\d+$/.test(id)) {
     const err = new Error('Invalid link id');
     err.status = 400;
     throw err;

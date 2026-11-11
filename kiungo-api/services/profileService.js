@@ -1,6 +1,9 @@
 // services/profileService.js
 const { supabase } = require('../db');
 const config = require('../config');
+
+// Fetch only fields used by the API response; avoid shipping internal columns.
+const PROFILE_FIELDS = 'id, owner, username, display_name, tagline, avatar, theme, font_family, text_color, views';
 const {
   normalizeUsername,
   validUsername,
@@ -8,20 +11,8 @@ const {
   sanitizeLinks,
 } = require('../utils/validation');
 
-async function hydrate(profile) {
-  if (!profile) return null;
-
-  const { data: links, error } = await supabase
-    .from('links')
-    .select('id, label, url, icon, position, clicks')
-    .eq('profile_id', profile.id)
-    .order('position', { ascending: true })
-    .order('id', { ascending: true });
-
-  if (error) throw error;
-
-  const totalClicks = (links || []).reduce((sum, l) => sum + (l.clicks || 0), 0);
-
+function toHydrated(profile, links = []) {
+  const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
   return {
     id: profile.id,
     username: profile.username,
@@ -33,14 +24,48 @@ async function hydrate(profile) {
     textColor: profile.text_color,
     views: profile.views,
     totalClicks,
-    links: links || [],
+    links,
   };
+}
+
+async function hydrate(profile) {
+  if (!profile) return null;
+  const { data: links, error } = await supabase
+    .from('links')
+    .select('id, label, url, icon, position, clicks')
+    .eq('profile_id', profile.id)
+    .order('position', { ascending: true })
+    .order('id', { ascending: true });
+  if (error) throw error;
+  return toHydrated(profile, links || []);
+}
+
+// Dashboard and showcase hydration uses one links query for all profiles,
+// avoiding one database round-trip per profile.
+async function hydrateMany(profiles) {
+  if (!profiles.length) return [];
+  const ids = profiles.map((profile) => profile.id);
+  const { data: links, error } = await supabase
+    .from('links')
+    .select('id, profile_id, label, url, icon, position, clicks')
+    .in('profile_id', ids)
+    .order('position', { ascending: true })
+    .order('id', { ascending: true });
+  if (error) throw error;
+
+  const grouped = new Map();
+  for (const link of links || []) {
+    const key = String(link.profile_id);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(link);
+  }
+  return profiles.map((profile) => toHydrated(profile, grouped.get(String(profile.id)) || []));
 }
 
 async function findByUsername(username) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_FIELDS)
     .eq('username', username)
     .maybeSingle();
 
@@ -51,24 +76,24 @@ async function findByUsername(username) {
 async function getMyProfiles(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_FIELDS)
     .eq('owner', userId)
     .order('id', { ascending: false });
 
   if (error) throw error;
-  return Promise.all((data || []).map(hydrate));
+  return hydrateMany(data || []);
 }
 
 async function getShowcase(limit = 12) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_FIELDS)
     .order('views', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
-  return Promise.all((data || []).map(hydrate));
+  return hydrateMany(data || []);
 }
 
 async function getPublicProfile(username, requesterId = null) {
@@ -214,68 +239,73 @@ async function incrementView(username) {
     throw err;
   }
 
+  // Event insertion and the database trigger update the aggregate in one transaction.
+  const { error: eventError } = await supabase.from('page_views').insert({
+    profile_id: profile.owner,
+    profile_record_id: String(profile.id),
+  });
+  if (eventError) throw eventError;
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({ views: profile.views + 1 })
-    .eq('id', profile.id)
     .select('views')
+    .eq('id', profile.id)
     .single();
-
   if (error) throw error;
   return { views: data.views };
 }
 
 async function incrementClick(linkId) {
-  const id = Number(linkId);
-  if (!Number.isFinite(id)) {
+  const id = String(linkId || '');
+  if (!/^\d+$/.test(id)) {
     const err = new Error('Invalid link id');
     err.status = 400;
     throw err;
   }
 
-  const { data: link, error: fetchError } = await supabase
+  const { data: link, error: linkError } = await supabase
     .from('links')
-    .select('clicks')
+    .select('id, profile_id')
     .eq('id', id)
     .maybeSingle();
 
-  if (fetchError) throw fetchError;
+  if (linkError) throw linkError;
   if (!link) {
-    const err = new Error('Link not found');
-    err.status = 404;
-    throw err;
+    const notFound = new Error('Link not found');
+    notFound.status = 404;
+    throw notFound;
   }
 
-  const { error } = await supabase
-    .from('links')
-    .update({ clicks: (link.clicks || 0) + 1 })
-    .eq('id', id);
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('owner')
+    .eq('id', link.profile_id)
+    .single();
+  if (profileError) throw profileError;
 
+  // Keep the event tied to the BIGINT link row; profile_id remains the auth UUID
+  // used by the existing analytics ownership policy.
+  const { error: eventError } = await supabase.from('link_clicks').insert({
+    profile_id: profile.owner,
+    link_record_id: id,
+  });
+  if (eventError) throw eventError;
+
+  const { data, error } = await supabase
+    .from('links')
+    .select('clicks')
+    .eq('id', id)
+    .single();
   if (error) throw error;
-  return { ok: true };
+  return { ok: true, clicks: data.clicks };
 }
 
 async function writeLinks(profileId, rawLinks) {
-  const { error: deleteError } = await supabase
-    .from('links')
-    .delete()
-    .eq('profile_id', profileId);
-
-  if (deleteError) throw deleteError;
-
   const links = sanitizeLinks(rawLinks);
-  if (links.length === 0) return;
-
-  const rows = links.map((link) => ({
-    profile_id: profileId,
-    label: link.label,
-    url: link.url,
-    icon: link.icon,
-    position: link.position,
-    clicks: link.clicks,
-  }));
-
-  const { error } = await supabase.from('links').insert(rows);
+  const { error } = await supabase.rpc('linkhub_reconcile_links', {
+    p_profile_id: String(profileId),
+    p_links: links,
+  });
   if (error) throw error;
 }
 

@@ -12,13 +12,14 @@ function securityMiddleware() {
 
     cors({
       origin: (origin, callback) => {
-        if (!origin && !config.isProd) {
+        // Non-browser clients and local health checks have no Origin header.
+        if (!origin) {
           return callback(null, true);
         }
 
         const allowed = config.corsOrigin.split(',').map((o) => o.trim());
 
-        if (allowed.includes(origin) || allowed.includes('*')) {
+        if (allowed.includes(origin) || (!config.isProd && allowed.includes('*'))) {
           return callback(null, true);
         }
 

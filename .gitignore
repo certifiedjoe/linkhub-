@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js build output
+.next/
+**/.next/
+out/
+**/out/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs and local caches
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
+.nyc_output/
+
+# Generated audit reports
+npm-audit.json

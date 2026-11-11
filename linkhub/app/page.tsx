@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, Eye, ImagePlus, LayoutGrid, Moon, MousePointerClick, Pencil, Plus, Sun, Mail, MessageCircle } from 'lucide-react';
+import { ArrowRight, BarChart3, Eye, ImagePlus, LayoutGrid, Moon, MousePointerClick, Pencil, Plus, Sun, Mail, MessageCircle, Link2, QrCode } from 'lucide-react';
 import { api, type Profile, type ProfileDraft } from '@/lib/api';
 import { Logo, Wordmark } from '@/components/logo';
 import { Builder } from '@/components/builder';
+import { ShortLinksDashboard } from '@/components/short-links-dashboard';
+import { AnalyticsDashboard } from '@/components/analytics-dashboard';
+import { QrCodesDashboard } from '@/components/qr-codes-dashboard';
 import { ProfileStage, PublicProfile, ShareBar, prettyUrl } from '@/components/profile-view';
 import { AuthGate, AuthProvider, DemoModeNotice, SignInPanel, UserMenu, useAuth, ResetPasswordPanel } from '@/components/auth';
 
@@ -13,6 +16,9 @@ type Route =
   | { view: 'build'; username?: string }
   | { view: 'edit'; username: string }
   | { view: 'dashboard' }
+  | { view: 'links' }
+  | { view: 'analytics' }
+  | { view: 'qr-codes' }
   | { view: 'signin' }
   | { view: 'reset-password' }
   | { view: 'profile'; username: string };
@@ -22,6 +28,9 @@ function parseHash(hash: string): Route {
   if (!clean) return { view: 'home' };
   const [head, tail] = clean.split('/');
   if (head === 'dashboard') return { view: 'dashboard' };
+  if (head === 'links') return { view: 'links' };
+  if (head === 'analytics') return { view: 'analytics' };
+  if (head === 'qr-codes') return { view: 'qr-codes' };
   if (head === 'build') return { view: 'build', username: tail };
   if (head === 'edit' && tail) return { view: 'edit', username: tail };
   if (head === 'signin' || head === 'login') return { view: 'signin' };
@@ -44,7 +53,9 @@ const DEMO: ProfileDraft = {
 };
 
 function useHashRoute() {
-  const [route, setRoute] = useState<Route | null>(null);
+  // Render the public homepage immediately on the server. The hash route is
+  // applied after hydration, avoiding a full-screen loading gate on first visit.
+  const [route, setRoute] = useState<Route>({ view: 'home' });
 
   useEffect(() => {
     const read = () => setRoute(parseHash(window.location.hash));
@@ -91,15 +102,24 @@ function Header({ go }: { go: (to: string) => void }) {
         </a>
         <nav className="ml-auto flex items-center gap-1">
           {showMine ? (
-            <button
-              onClick={() => go('/dashboard')}
-              className="btn-quiet whitespace-nowrap"
-              aria-label="My pages"
-              data-testid="link-dashboard"
-            >
-              <LayoutGrid className="h-4 w-4 sm:hidden" />
-              <span className="hidden sm:inline">My pages</span>
-            </button>
+            <>
+              <button onClick={() => go('/dashboard')} className="btn-quiet whitespace-nowrap" aria-label="My pages" data-testid="link-dashboard">
+                <LayoutGrid className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">My pages</span>
+              </button>
+              <button onClick={() => go('/links')} className="btn-quiet whitespace-nowrap" aria-label="Short links" data-testid="link-short-links">
+                <Link2 className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">Short links</span>
+              </button>
+              <button onClick={() => go('/qr-codes')} className="btn-quiet whitespace-nowrap" aria-label="QR codes" data-testid="link-qr-codes">
+                <QrCode className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">QR codes</span>
+              </button>
+              <button onClick={() => go('/analytics')} className="btn-quiet whitespace-nowrap" aria-label="Analytics" data-testid="link-analytics">
+                <BarChart3 className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">Analytics</span>
+              </button>
+            </>
           ) : null}
           <ThemeToggle />
           <UserMenu onSignIn={() => go('/signin')} />
@@ -111,6 +131,12 @@ function Header({ go }: { go: (to: string) => void }) {
       </div>
     </header>
   );
+}
+
+function WorkspaceFrame({ go, active, children }: { go: (to: string) => void; active: string; children: React.ReactNode }) {
+ const { user } = useAuth();
+ const items = [{id:'dashboard',label:'Overview',Icon:LayoutGrid,path:'/dashboard'},{id:'links',label:'Short links',Icon:Link2,path:'/links'},{id:'qr-codes',label:'QR codes',Icon:QrCode,path:'/qr-codes'},{id:'analytics',label:'Analytics',Icon:BarChart3,path:'/analytics'}];
+ return <div className="workspace-frame min-h-[calc(100dvh-64px)]"><aside className="workspace-sidebar"><a href="#/" className="workspace-brand"><Wordmark /></a><p className="workspace-label">WORKSPACE</p><nav className="workspace-nav" aria-label="Workspace navigation">{items.map(({id,label,Icon,path})=><button key={id} onClick={()=>go(path)} className={active===id?'workspace-nav-item is-active':'workspace-nav-item'} aria-current={active===id?'page':undefined}><Icon className="h-[18px] w-[18px]" /><span>{label}</span></button>)}</nav><div className="workspace-sidebar-bottom"><button onClick={()=>go('/build')} className="btn-primary w-full"><Plus className="h-4 w-4" /> Create a page</button><div className="workspace-user"><span className="workspace-avatar">{(user?.email?.[0]||'K').toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-sm font-semibold">{user?.email?.split('@')[0]||'Your account'}</span><span className="block truncate text-xs text-muted">{user?.email||'Kiungo workspace'}</span></span></div></div></aside><div className="workspace-main min-w-0"><header className="workspace-topbar"><p className="text-xs text-muted">Kiungo workspace <span className="mx-2 text-line">/</span><span className="font-medium text-ink">{items.find(item=>item.id===active)?.label||'Page builder'}</span></p><div className="flex items-center gap-2"><ThemeToggle /><UserMenu onSignIn={()=>go('/signin')} /></div></header><div className="workspace-content">{children}</div></div></div>;
 }
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
@@ -135,25 +161,25 @@ function Home({ go }: { go: (to: string) => void }) {
   }, []);
 
   const steps = [
-    { Icon: ImagePlus, title: 'Add your photo', body: 'Upload a picture and write a one-line bio. It is cropped and optimised for you.' },
-    { Icon: Plus, title: 'Add your buttons', body: 'One button per destination — Instagram, WhatsApp, shop, booking form, anything.' },
-    { Icon: MousePointerClick, title: 'Share one link', body: 'Put your Kiungo address in every bio and send traffic wherever you want.' },
+    { Icon: Link2, title: 'Shorten any URL', body: 'Turn long destinations into clean, shareable links with a custom ending.' },
+    { Icon: MousePointerClick, title: 'Route every visitor', body: 'Send iOS and Android visitors to the right app destination, with a web fallback.' },
+    { Icon: BarChart3, title: 'Measure performance', body: 'Track clicks and see which links bring people to your content.' },
   ];
 
   return (
-    <div>
+    <div className="home-page">
       {/* Hero */}
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:py-20">
+      <section className="home-hero mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:py-24">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border bg-raised px-3 py-1 text-xs font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Free while in beta
           </span>
-          <h1 className="mt-5 font-display text-[clamp(2.25rem,6vw,3.75rem)] font-semibold">
-            One link for everything you share.
+          <p className="home-kicker">SHORT LINKS, SMART ROUTING, ONE WORKSPACE</p>
+          <h1 className="home-title mt-5 font-display text-[clamp(2.7rem,6.5vw,5.2rem)] font-semibold">
+            Shorten. Route.<br /><span>Grow smarter.</span>
           </h1>
-          <p className="mt-5 max-w-[52ch] text-lg text-muted">
-            Kiungo turns your photo and all your links into a single page with its own address — built to drop into
-            every social bio you have.
+          <p className="mt-5 max-w-[48ch] text-lg leading-relaxed text-muted">
+            Create memorable short links, route people to the right app or web destination, and understand what gets clicked. Keep your bio page and all your links in one simple workspace.
           </p>
 
           <form
@@ -178,12 +204,16 @@ function Home({ go }: { go: (to: string) => void }) {
               Claim it <ArrowRight className="h-4 w-4" />
             </button>
           </form>
-          <p className="mt-3 text-sm text-muted">No account needed to try it. Your page is live the moment you publish.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-muted">
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Free to get started</span>
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> No code required</span>
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Made for mobile</span>
+          </div>
         </div>
 
-        <div className="relative">
+        <div className="home-preview relative">
           <div
-            className="pointer-events-none absolute -inset-8 -z-10 rounded-full opacity-40 blur-3xl"
+            className="pointer-events-none absolute -inset-8 -z-10 rounded-full opacity-50 blur-3xl"
             style={{ background: 'radial-gradient(circle at 60% 30%, hsl(var(--accent) / 0.5), transparent 65%)' }}
             aria-hidden
           />
@@ -196,7 +226,7 @@ function Home({ go }: { go: (to: string) => void }) {
       {/* How it works */}
       <section className="border-y bg-raised/50">
         <div className="mx-auto max-w-6xl px-5 py-14">
-          <h2 className="font-display text-xl font-semibold">Three steps, about two minutes</h2>
+          <h2 className="font-display text-xl font-semibold">One workspace. Three simple steps.</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {steps.map(({ Icon, title, body }, i) => (
               <div key={title} className="card p-5">
@@ -218,17 +248,16 @@ function Home({ go }: { go: (to: string) => void }) {
       <section className="mx-auto max-w-6xl px-5 py-14">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div>
-            <h2 className="font-display text-xl font-semibold">See what your audience actually taps</h2>
+            <h2 className="font-display text-xl font-semibold">Understand what happens after every tap</h2>
             <p className="mt-3 max-w-[54ch] text-muted">
-              Every page counts its views, and every button counts its clicks. Reorder your buttons so the ones that
-              earn go to the top.
+              Kiungo brings your short-link activity and bio-page engagement together, so you can understand what people open and where they go.
             </p>
             <ul className="mt-6 space-y-3 text-sm">
               {[
-                'Page views and per-button clicks, visible only to you',
-                'Drag-free reordering — move any button up or down',
-                'Four page styles, light and dark friendly',
-                'Works on any phone, no app to install',
+                'Short-link clicks and bio-page button activity',
+                'Smart destinations for iOS and Android visitors',
+                'QR codes and scan analytics as the next build phase',
+                'Clear performance data in one workspace',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
@@ -385,86 +414,16 @@ function Home({ go }: { go: (to: string) => void }) {
 }
 
 function Dashboard({ go }: { go: (to: string) => void }) {
-  const [pages, setPages] = useState<Profile[] | null>(null);
-
-  useEffect(() => {
-    api
-      .mine()
-      .then(setPages)
-      .catch(() => setPages([]));
-  }, []);
-
-  return (
-    <div className="mx-auto max-w-4xl px-5 py-10">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-xl font-semibold">My pages</h1>
-        <button onClick={() => go('/build')} className="btn-primary ml-auto" data-testid="button-new-page">
-          <Plus className="h-4 w-4" /> New page
-        </button>
-      </div>
-
-      {pages === null ? (
-        <div className="mt-8 space-y-4">
-          {[0, 1].map((i) => (
-            <div key={i} className="h-32 rounded-2xl skeleton" />
-          ))}
-        </div>
-      ) : pages.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed px-6 py-16 text-center">
-          <span className="inline-flex text-accent">
-            <Logo className="h-9 w-9" />
-          </span>
-          <p className="mt-4 font-display text-lg font-semibold">You have no pages yet</p>
-          <p className="mx-auto mt-2 max-w-[44ch] text-sm text-muted">
-            Build your first page: add a photo, add your links, and get a shareable address.
-          </p>
-          <button onClick={() => go('/build')} className="btn-primary mt-6">
-            Create my page
-          </button>
-        </div>
-      ) : (
-        <ul className="mt-8 space-y-5">
-          {pages.map((p) => (
-            <li key={p.id} className="card p-5" data-testid={`card-my-page-${p.username}`}>
-              <div className="flex flex-wrap items-center gap-4">
-                <span className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-line/50">
-                  {p.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.avatar} alt="" className="h-full w-full object-cover" />
-                  ) : null}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{p.displayName}</p>
-                  <p className="truncate font-mono text-xs text-muted">{prettyUrl(p.username)}</p>
-                </div>
-                <div className="ml-auto flex items-center gap-4 text-sm text-muted">
-                  <span className="inline-flex items-center gap-1.5 tabular-nums">
-                    <Eye className="h-4 w-4" /> {p.views}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 tabular-nums">
-                    <BarChart3 className="h-4 w-4" /> {p.totalClicks}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => go(`/${p.username}`)} className="btn-ghost px-3 py-2">
-                    View
-                  </button>
-                  <button onClick={() => go(`/edit/${p.username}`)} className="btn-primary px-3 py-2">
-                    <Pencil className="h-4 w-4" /> Edit
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 border-t pt-4">
-                <ShareBar username={p.username} compact />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+ const [pages,setPages]=useState<Profile[]|null>(null);
+ useEffect(()=>{api.mine().then(setPages).catch(()=>setPages([]));},[]);
+ const views=pages?.reduce((n,p)=>n+p.views,0)||0, clicks=pages?.reduce((n,p)=>n+p.totalClicks,0)||0;
+ return <div className="dashboard-shell mx-auto max-w-[1440px] px-4 py-7 sm:px-7 sm:py-9">
+ <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-accent">YOUR WORKSPACE</p><h1 className="mt-2 font-display text-3xl font-semibold sm:text-[2.15rem]">Good to see you.</h1><p className="mt-2 text-sm text-muted">Here’s what’s happening across your Kiungo links and pages.</p></div><button onClick={()=>go('/build')} className="btn-primary"><Plus className="h-4 w-4"/> Create new page</button></div>
+ <div className="mt-7 grid gap-4 sm:grid-cols-3"><div className="workspace-stat"><span className="workspace-stat-icon"><LayoutGrid className="h-5 w-5"/></span><span className="text-sm text-muted">Your pages</span><strong>{pages?.length??'—'}</strong><span className="text-xs text-muted">Published profiles</span></div><div className="workspace-stat"><span className="workspace-stat-icon"><Eye className="h-5 w-5"/></span><span className="text-sm text-muted">Page views</span><strong>{pages===null?'—':views.toLocaleString()}</strong><span className="text-xs text-muted">Across your pages</span></div><div className="workspace-stat"><span className="workspace-stat-icon"><MousePointerClick className="h-5 w-5"/></span><span className="text-sm text-muted">Link clicks</span><strong>{pages===null?'—':clicks.toLocaleString()}</strong><span className="text-xs text-muted">Total recorded clicks</span></div></div>
+ <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]"><section className="min-w-0"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-display text-xl font-semibold">Your pages</h2><p className="mt-1 text-sm text-muted">Manage and share your published pages.</p></div><button onClick={()=>go('/analytics')} className="btn-quiet text-xs">View analytics <ArrowRight className="h-3.5 w-3.5"/></button></div>
+ {pages===null?<div className="grid gap-4 md:grid-cols-2"><div className="h-48 rounded-2xl skeleton"/><div className="h-48 rounded-2xl skeleton"/></div>:pages.length===0?<div className="card border-dashed px-6 py-14 text-center"><Logo className="mx-auto h-9 w-9 text-accent"/><p className="mt-4 font-display text-lg font-semibold">Your workspace is ready</p><p className="mx-auto mt-2 max-w-[44ch] text-sm text-muted">Create your first bio page, add your important links, and share one simple address.</p><button onClick={()=>go('/build')} className="btn-primary mt-6"><Plus className="h-4 w-4"/> Create your first page</button></div>:<ul className="grid gap-4 md:grid-cols-2">{pages.map(p=><li key={p.id} className="workspace-page-card card p-4" data-testid={'card-my-page-'+p.username}><div className="flex items-center gap-3"><span className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-line/50">{p.avatar?<img src={p.avatar} alt="" className="h-full w-full object-cover"/>:<span className="flex h-full w-full items-center justify-center font-semibold text-muted">{p.displayName.slice(0,1).toUpperCase()}</span>}</span><div className="min-w-0 flex-1"><p className="truncate font-semibold">{p.displayName}</p><p className="truncate font-mono text-xs text-muted">{prettyUrl(p.username)}</p></div><span className="rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent">Published</span></div><div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-surface/75 p-3"><div><p className="text-xs text-muted">Views</p><p className="mt-1 text-lg font-semibold tabular-nums">{p.views.toLocaleString()}</p></div><div><p className="text-xs text-muted">Button clicks</p><p className="mt-1 text-lg font-semibold tabular-nums">{p.totalClicks.toLocaleString()}</p></div></div><div className="mt-4 flex items-center gap-2"><button onClick={()=>go('/'+p.username)} className="btn-ghost flex-1 px-3 py-2 text-xs"><Eye className="h-3.5 w-3.5"/> Preview</button><button onClick={()=>go('/edit/'+p.username)} className="btn-primary flex-1 px-3 py-2 text-xs"><Pencil className="h-3.5 w-3.5"/> Edit page</button></div><div className="mt-3 border-t pt-3"><ShareBar username={p.username} compact/></div></li>)}</ul>}</section>
+ <aside className="workspace-right-rail space-y-5"><section className="card p-5"><div className="flex items-center justify-between"><h2 className="font-semibold">Quick actions</h2><span className="text-xs text-muted">TOOLS</span></div><div className="mt-4 space-y-2"><button onClick={()=>go('/links')} className="workspace-quick-action"><Link2 className="h-4 w-4 text-accent"/><span><strong>Create a short link</strong><small>Make long URLs easy to share</small></span><ArrowRight className="ml-auto h-4 w-4 text-muted"/></button><button onClick={()=>go('/qr-codes')} className="workspace-quick-action"><QrCode className="h-4 w-4 text-accent"/><span><strong>Generate a QR code</strong><small>Share links in print or online</small></span><ArrowRight className="ml-auto h-4 w-4 text-muted"/></button><button onClick={()=>go('/analytics')} className="workspace-quick-action"><BarChart3 className="h-4 w-4 text-accent"/><span><strong>Explore analytics</strong><small>Understand clicks and traffic</small></span><ArrowRight className="ml-auto h-4 w-4 text-muted"/></button></div></section><section className="card p-5"><span className="workspace-stat-icon"><Link2 className="h-5 w-5"/></span><h2 className="mt-3 font-semibold">One link. More possibilities.</h2><p className="mt-2 text-sm leading-relaxed text-muted">Bring your bio page, smart short links, QR codes and performance insights together in one calm workspace.</p></section></aside></div></div>;
 }
-
 function LoadingScreen() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-surface">
@@ -486,11 +445,6 @@ function LoadingScreen() {
 function Shell() {
   const { route, go } = useHashRoute();
 
-  // Show polished loading screen until hash is read
-  if (!route) {
-    return <LoadingScreen />;
-  }
-
   // Public profiles are readable by anyone
   if (route.view === 'profile') {
     return (
@@ -503,25 +457,16 @@ function Shell() {
   return (
     <main className="min-h-dvh">
       <DemoModeNotice />
-      <Header go={go} />
-      {route.view === 'home' ? <Home go={go} /> : null}
-      {route.view === 'signin' ? <SignInPanel /> : null}
-      {route.view === 'reset-password' ? <ResetPasswordPanel /> : null}
-      {route.view === 'dashboard' ? (
-        <AuthGate heading="Sign in to see your pages" blurb="Your pages, views and clicks are tied to your account.">
-          <Dashboard go={go} />
-        </AuthGate>
-      ) : null}
-      {route.view === 'build' ? (
-        <AuthGate heading="Sign in to build your page" blurb="It takes a moment, and it keeps your page yours to edit.">
-          <Builder initialUsername={route.username || ''} onBack={() => go('/')} onDone={(u) => go(`/${u}`)} />
-        </AuthGate>
-      ) : null}
-      {route.view === 'edit' ? (
-        <AuthGate heading="Sign in to edit this page" blurb="Only the account that created a page can change it.">
-          <Builder editing={route.username} onBack={() => go('/dashboard')} onDone={(u) => go(`/${u}`)} />
-        </AuthGate>
-      ) : null}
+      {['dashboard','links','analytics','qr-codes','build','edit'].includes(route.view) ? (
+        <WorkspaceFrame go={go} active={route.view==='build'||route.view==='edit'?'dashboard':route.view}>
+          {route.view==='qr-codes'?<AuthGate heading="Sign in to create QR codes" blurb="Generate QR codes for your short links and download them for print or digital sharing."><QrCodesDashboard/></AuthGate>:null}
+          {route.view==='analytics'?<AuthGate heading="Sign in to view analytics" blurb="See link clicks, top destinations, devices and referrers."><AnalyticsDashboard/></AuthGate>:null}
+          {route.view==='links'?<AuthGate heading="Sign in to manage your links" blurb="Create short links, set destinations and track clicks."><ShortLinksDashboard/></AuthGate>:null}
+          {route.view==='dashboard'?<AuthGate heading="Sign in to see your pages" blurb="Your pages, views and clicks are tied to your account."><Dashboard go={go}/></AuthGate>:null}
+          {route.view==='build'?<AuthGate heading="Sign in to build your page" blurb="It takes a moment, and it keeps your page yours to edit."><Builder initialUsername={route.username||''} onBack={()=>go('/')} onDone={u=>go('/'+u)}/></AuthGate>:null}
+          {route.view==='edit'?<AuthGate heading="Sign in to edit this page" blurb="Only the account that created a page can change it."><Builder editing={route.username} onBack={()=>go('/dashboard')} onDone={u=>go('/'+u)}/></AuthGate>:null}
+        </WorkspaceFrame>
+      ) : <><Header go={go}/>{route.view==='home'?<Home go={go}/>:null}{route.view==='signin'?<SignInPanel/>:null}{route.view==='reset-password'?<ResetPasswordPanel/>:null}</> }
     </main>
   );
 }

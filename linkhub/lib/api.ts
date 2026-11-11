@@ -1,12 +1,51 @@
 import { accessToken } from '@/lib/supabase';
 
 export type LinkItem = {
-  id?: number;
+  id?: number | string;
   label: string;
   url: string;
   icon: string;
   position?: number;
   clicks?: number;
+};
+
+export type AnalyticsBreakdown = { label: string; count: number };
+
+export type AnalyticsOverview = {
+  totalLinks: number;
+  activeLinks: number;
+  totalClicks: number;
+  sampledClicks: number;
+  topLinks: Array<{ code: string; title: string; clicks: number; status: 'active' | 'paused' }>;
+  devices: AnalyticsBreakdown[];
+  referrers: AnalyticsBreakdown[];
+  recentClicks: Array<{ code: string; title: string; device: string; referrer: string; createdAt: string }>;
+};
+
+export type ShortLink = {
+  id: string;
+  code: string;
+  title: string;
+  destinationUrl: string;
+  mobileUrl: string | null;
+  desktopUrl: string | null;
+  fallbackUrl: string | null;
+  status: 'active' | 'paused';
+  expiresAt: string | null;
+  clicks: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ShortLinkDraft = {
+  code?: string;
+  title?: string;
+  destinationUrl: string;
+  mobileUrl?: string;
+  desktopUrl?: string;
+  fallbackUrl?: string;
+  status?: 'active' | 'paused';
+  expiresAt?: string | null;
 };
 
 export type Profile = {
@@ -37,30 +76,63 @@ export type ProfileDraft = {
 
 function base(): string {
   const injected = typeof window === 'undefined' ? '' : ((window as unknown as Record<string, string>).__KIUNGO_API__ || '');
-  if (!injected || injected.slice(0, 2) === '__') return 'http://localhost:8000';
-  const trimmed = injected.replace(/\/$/, '');
+  const configured = process.env.NEXT_PUBLIC_KIUNGO_API_URL || injected;
+  const value = configured && configured.slice(0, 2) !== '__' ? configured : '';
+
+  if (!value) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('The API URL is not configured. Set NEXT_PUBLIC_KIUNGO_API_URL to your deployed Kiungo API origin.');
+    }
+    return 'http://localhost:8000';
+  }
+
+  const trimmed = value.replace(/\/$/, '');
   if (/^https?:\/\//.test(trimmed)) return trimmed;
   const origin = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '');
   return `${origin.replace(/\/$/, '')}/${trimmed.replace(/^\//, '')}`;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  // Attach the Supabase access token when signed in. The API verifies it and derives
-  // ownership from the user id inside; it never trusts a client-supplied identity.
+  // Attach the Supabase access token when signed in. The API derives ownership
+  // from the verified token, never from a client-supplied identity.
   const token = await accessToken().catch(() => null);
-  const res = await fetch(`${base()}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {}),
-    },
-  });
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  if (res.status === 401) throw new AuthRequiredError((data && data.error) || 'Please sign in to continue.');
-  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
-  return data as T;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+
+  try {
+    const res = await fetch(`${base()}${path}`, {
+      ...init,
+      signal: init?.signal || controller.signal,
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers || {}),
+      },
+    });
+
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      if (res.status !== 204) throw new Error('The API returned an unreadable response. Please try again.');
+    }
+
+    const message = data && typeof data === 'object' && 'error' in data
+      ? String((data as { error: unknown }).error)
+      : '';
+    if (res.status === 401) throw new AuthRequiredError(message || 'Please sign in to continue.');
+    if (!res.ok) throw new Error(message || `Request failed (${res.status})`);
+    return data as T;
+  } catch (error) {
+    if (error instanceof AuthRequiredError || error instanceof Error && !['AbortError','TypeError'].includes(error.name)) throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The request took too long. Check your connection and try again.');
+    }
+    throw new Error('Could not reach Kiungo. Check your connection and try again.');
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 /** Thrown on a 401 so callers can send the user to the sign-in screen. */
@@ -82,6 +154,12 @@ export const api = {
   remove: (username: string) => request<{ deleted: string }>(`/api/profiles/${encodeURIComponent(username)}`, { method: 'DELETE' }),
   countView: (username: string) => request<{ views: number }>(`/api/profiles/${encodeURIComponent(username)}/view`, { method: 'POST' }),
   countClick: (id: number | string) => request<{ ok: boolean }>(`/api/links/${id}/click`, { method: 'POST' }),
+  analyticsOverview: () => request<AnalyticsOverview>('/api/analytics/overview'),
+  shortLinks: () => request<ShortLink[]>('/api/short-links'),
+  createShortLink: (draft: ShortLinkDraft) => request<ShortLink>('/api/short-links', { method: 'POST', body: JSON.stringify(draft) }),
+  updateShortLink: (id: string, draft: Partial<ShortLinkDraft>) => request<ShortLink>(`/api/short-links/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(draft) }),
+  deleteShortLink: (id: string) => request<{ deleted: string }>(`/api/short-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  shortLinkUrl: (code: string) => `${base()}/api/r/${encodeURIComponent(code)}`,
 };
 
 /** Resize an uploaded image to a square 512px data URL so profiles stay light. */
